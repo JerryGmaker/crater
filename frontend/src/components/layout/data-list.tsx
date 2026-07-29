@@ -93,6 +93,22 @@ export interface DataItem {
   owner: IUserInfo
 }
 
+export type DataListOwnerFilter = 'all' | 'mine' | 'others'
+export type DataListSortDirection = 'ascending' | 'descending'
+
+export interface DataListRemoteQuery {
+  page: number
+  pageSize: number
+  search: string
+  owner: DataListOwnerFilter
+  sort: DataListSortDirection
+}
+
+interface DataListRemoteConfig {
+  total: number
+  onQueryChange: (query: DataListRemoteQuery) => void
+}
+
 export default function DataList({
   items,
   title,
@@ -104,6 +120,7 @@ export default function DataList({
   showDescriptionFallback = true,
   showMetadata = true,
   compactMetadata = false,
+  remote,
 }: {
   items: DataItem[]
   title: string
@@ -115,9 +132,10 @@ export default function DataList({
   showDescriptionFallback?: boolean
   showMetadata?: boolean
   compactMetadata?: boolean
+  remote?: DataListRemoteConfig
 }) {
   const { t } = useTranslation()
-  const [sort, setSort] = useState('descending')
+  const [sort, setSort] = useState<DataListSortDirection>('descending')
   const hasMountCount = useMemo(() => items.some((item) => item.mountCount !== undefined), [items])
   const [sortField, setSortField] = useState<'createdAt' | 'mountCount'>(
     hasMountCount ? 'mountCount' : 'createdAt'
@@ -125,10 +143,12 @@ export default function DataList({
   const [sortFieldManuallyChanged, setSortFieldManuallyChanged] = useState(false)
   const [modelType, setModelType] = useState('所有标签')
   const [searchTerm, setSearchTerm] = useState('')
-  const [ownerFilter, setOwnerFilter] = useState('所有') // 修改默认值为"所有"
+  const [ownerFilter, setOwnerFilter] = useState<DataListOwnerFilter>('all')
   const [pageIndex, setPageIndex] = useState(0)
   const [pageSize, setPageSize] = useState(10)
   const user = useAtomValue(atomUserInfo)
+  const isRemote = remote !== undefined
+  const onRemoteQueryChange = remote?.onQueryChange
 
   useEffect(() => {
     const nextDefaultSortField = hasMountCount ? 'mountCount' : 'createdAt'
@@ -159,68 +179,86 @@ export default function DataList({
   }
 
   // Memoize sorting and filtering to keep large resource lists responsive.
-  const filteredItems = useMemo(
-    () =>
-      [...items]
-        .sort((a, b) => {
-          const direction = sort === 'descending' ? -1 : 1
+  const filteredItems = useMemo(() => {
+    if (isRemote) {
+      return items
+    }
 
-          if (sortField === 'mountCount') {
-            const aCount = toSortableNumber(a.mountCount)
-            const bCount = toSortableNumber(b.mountCount)
+    return [...items]
+      .sort((a, b) => {
+        const direction = sort === 'descending' ? -1 : 1
 
-            if (aCount !== bCount) {
-              return (aCount - bCount) * direction
-            }
-          } else {
-            const aTime = toSortableNumber(new Date(a.createdAt || '').getTime())
-            const bTime = toSortableNumber(new Date(b.createdAt || '').getTime())
+        if (sortField === 'mountCount') {
+          const aCount = toSortableNumber(a.mountCount)
+          const bCount = toSortableNumber(b.mountCount)
 
-            if (aTime !== bTime) {
-              return (aTime - bTime) * direction
-            }
+          if (aCount !== bCount) {
+            return (aCount - bCount) * direction
           }
+        } else {
+          const aTime = toSortableNumber(new Date(a.createdAt || '').getTime())
+          const bTime = toSortableNumber(new Date(b.createdAt || '').getTime())
 
-          const aCreatedAt = toSortableNumber(new Date(a.createdAt || '').getTime())
-          const bCreatedAt = toSortableNumber(new Date(b.createdAt || '').getTime())
-          if (aCreatedAt !== bCreatedAt) {
-            return (aCreatedAt - bCreatedAt) * direction
+          if (aTime !== bTime) {
+            return (aTime - bTime) * direction
           }
+        }
 
-          return (a.id - b.id) * direction
-        })
-        .filter((item) =>
-          modelType === '所有标签' ? true : item.tag.includes(modelType) ? true : false
+        const aCreatedAt = toSortableNumber(new Date(a.createdAt || '').getTime())
+        const bCreatedAt = toSortableNumber(new Date(b.createdAt || '').getTime())
+        if (aCreatedAt !== bCreatedAt) {
+          return (aCreatedAt - bCreatedAt) * direction
+        }
+
+        return (a.id - b.id) * direction
+      })
+      .filter((item) =>
+        modelType === '所有标签' ? true : item.tag.includes(modelType) ? true : false
+      )
+      .filter((item) => {
+        const normalizedSearch = searchTerm.trim().toLowerCase()
+        return (
+          normalizedSearch === '' ||
+          item.name.toLowerCase().includes(normalizedSearch) ||
+          item.searchTerms?.some((term) => term.toLowerCase().includes(normalizedSearch))
         )
-        .filter((item) => {
-          const normalizedSearch = searchTerm.trim().toLowerCase()
-          return (
-            normalizedSearch === '' ||
-            item.name.toLowerCase().includes(normalizedSearch) ||
-            item.searchTerms?.some((term) => term.toLowerCase().includes(normalizedSearch))
-          )
-        })
-        // 修改：基于所有者筛选，添加"所有"选项
-        .filter((item) =>
-          ownerFilter === '所有'
-            ? true
-            : ownerFilter === '我的'
-              ? user?.name === item.owner.username
-              : user?.name !== item.owner.username
-        ),
-    [items, sort, sortField, modelType, searchTerm, ownerFilter, user?.name]
+      })
+      .filter((item) =>
+        ownerFilter === 'all'
+          ? true
+          : ownerFilter === 'mine'
+            ? user?.name === item.owner.username
+            : user?.name !== item.owner.username
+      )
+  }, [isRemote, items, modelType, ownerFilter, searchTerm, sort, sortField, user?.name])
+
+  useEffect(() => {
+    onRemoteQueryChange?.({
+      page: pageIndex + 1,
+      pageSize,
+      search: searchTerm,
+      owner: ownerFilter,
+      sort,
+    })
+  }, [onRemoteQueryChange, ownerFilter, pageIndex, pageSize, searchTerm, sort])
+
+  const totalItems = remote?.total ?? filteredItems.length
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
+  const currentPage = Math.min(pageIndex + 1, totalPages)
+  const paginatedItems = useMemo(
+    () =>
+      isRemote
+        ? filteredItems
+        : filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize),
+    [currentPage, filteredItems, isRemote, pageSize]
   )
 
   useEffect(() => {
-    setPageIndex(0)
-  }, [modelType, ownerFilter, pageSize, searchTerm])
-
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize))
-  const currentPage = Math.min(pageIndex + 1, totalPages)
-  const paginatedItems = useMemo(
-    () => filteredItems.slice((currentPage - 1) * pageSize, currentPage * pageSize),
-    [currentPage, filteredItems, pageSize]
-  )
+    const lastPageIndex = totalPages - 1
+    if (pageIndex > lastPageIndex) {
+      setPageIndex(lastPageIndex)
+    }
+  }, [pageIndex, totalPages])
 
   return (
     <div>
@@ -240,11 +278,20 @@ export default function DataList({
               placeholder={`搜索${title}...`}
               className="h-9 w-full min-w-0 pl-8 sm:w-40 lg:w-[250px]"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value)
+                setPageIndex(0)
+              }}
             />
           </div>
           {title !== '作业模板' && (
-            <Select value={modelType} onValueChange={setModelType}>
+            <Select
+              value={modelType}
+              onValueChange={(value) => {
+                setModelType(value)
+                setPageIndex(0)
+              }}
+            >
               <SelectTrigger className="min-w-36">
                 <SelectValue>{modelType}</SelectValue>
               </SelectTrigger>
@@ -261,14 +308,20 @@ export default function DataList({
 
           {/* 新增：简化的所有者筛选 */}
           {showOwner && (
-            <Select value={ownerFilter} onValueChange={setOwnerFilter}>
+            <Select
+              value={ownerFilter}
+              onValueChange={(value) => {
+                setOwnerFilter(value as DataListOwnerFilter)
+                setPageIndex(0)
+              }}
+            >
               <SelectTrigger className="min-w-28">
-                <SelectValue>{ownerFilter}</SelectValue>
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="所有">所有{title}</SelectItem>
-                <SelectItem value="我的">我的{title}</SelectItem>
-                <SelectItem value="他人">他人{title}</SelectItem>
+                <SelectItem value="all">所有{title}</SelectItem>
+                <SelectItem value="mine">我的{title}</SelectItem>
+                <SelectItem value="others">他人{title}</SelectItem>
               </SelectContent>
             </Select>
           )}
@@ -279,6 +332,7 @@ export default function DataList({
             onValueChange={(value) => {
               setSortFieldManuallyChanged(true)
               setSortField(value as 'createdAt' | 'mountCount')
+              setPageIndex(0)
             }}
           >
             <SelectTrigger className="min-w-28">
@@ -291,7 +345,13 @@ export default function DataList({
               )}
             </SelectContent>
           </Select>
-          <Select value={sort} onValueChange={setSort}>
+          <Select
+            value={sort}
+            onValueChange={(value) => {
+              setSort(value as DataListSortDirection)
+              setPageIndex(0)
+            }}
+          >
             <SelectTrigger className="w-16">
               <SelectValue>
                 {sort === 'ascending' ? (
@@ -472,10 +532,16 @@ export default function DataList({
           ))}
         </ul>
       )}
-      {filteredItems.length > 0 && (
+      {totalItems > 0 && (
         <div className="flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-muted-foreground flex items-center gap-3 text-xs font-medium">
-            <Select value={`${pageSize}`} onValueChange={(value) => setPageSize(Number(value))}>
+            <Select
+              value={`${pageSize}`}
+              onValueChange={(value) => {
+                setPageSize(Number(value))
+                setPageIndex(0)
+              }}
+            >
               <SelectTrigger className="bg-background h-9 w-[100px] pr-2 pl-3 text-xs">
                 <SelectValue />
               </SelectTrigger>
@@ -487,7 +553,7 @@ export default function DataList({
                 ))}
               </SelectContent>
             </Select>
-            <span>{t('dataTablePagination.totalItems', { count: filteredItems.length })}</span>
+            <span>{t('dataTablePagination.totalItems', { count: totalItems })}</span>
           </div>
           <PaginationNav
             currentPage={currentPage}

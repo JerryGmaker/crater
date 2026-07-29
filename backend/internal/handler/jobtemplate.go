@@ -1,15 +1,20 @@
 package handler
 
 import (
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
 
 	"github.com/raids-lab/crater/dao/model"
 	"github.com/raids-lab/crater/dao/query"
+	"github.com/raids-lab/crater/internal/bizerr"
 	"github.com/raids-lab/crater/internal/resputil"
 	"github.com/raids-lab/crater/internal/util"
 )
+
+const jobTemplateMaxSearchRunes = 128
 
 //nolint:gochecknoinits // This is the standard way to register a gin handler.
 func init() {
@@ -30,6 +35,7 @@ func (mgr *JobTemplateMgr) GetName() string { return mgr.name }
 func (mgr *JobTemplateMgr) RegisterPublic(_ *gin.RouterGroup) {}
 
 func (mgr *JobTemplateMgr) RegisterProtected(g *gin.RouterGroup) {
+	g.GET("", mgr.ListJobTemplates)
 	g.GET("/list", mgr.ListJobTemplate)
 	g.POST("/create", mgr.CreateJobTemplate)
 	g.DELETE("/delete/:id", mgr.DeleteJobTemplate)
@@ -52,6 +58,118 @@ type JobTemplateresp struct {
 	UserInfo model.UserInfo `json:"userInfo"`
 }
 
+type jobTemplateListQuery struct {
+	Page     int    `form:"page,default=1" binding:"min=1"`
+	PageSize int    `form:"page_size,default=10" binding:"min=1,max=200"`
+	Search   string `form:"search"`
+	Owner    string `form:"owner,default=all" binding:"oneof=all mine others"`
+	Sort     string `form:"sort,default=-createdAt" binding:"oneof=createdAt -createdAt"`
+}
+
+func bindJobTemplateListQuery(c *gin.Context) (jobTemplateListQuery, error) {
+	var request jobTemplateListQuery
+	if err := c.ShouldBindQuery(&request); err != nil {
+		return jobTemplateListQuery{}, bizerr.BadRequest.ParameterError.Wrap(
+			err,
+			"invalid job template list query",
+		)
+	}
+	request.Search = strings.TrimSpace(request.Search)
+	if utf8.RuneCountInString(request.Search) > jobTemplateMaxSearchRunes {
+		return jobTemplateListQuery{}, bizerr.BadRequest.ParameterError.New(
+			"search accepts at most 128 characters",
+		)
+	}
+	if request.Page > int(^uint(0)>>1)/request.PageSize {
+		return jobTemplateListQuery{}, bizerr.BadRequest.ParameterError.New(
+			"page is too large for page_size",
+		)
+	}
+	return request, nil
+}
+
+func (request jobTemplateListQuery) offset() int {
+	return (request.Page - 1) * request.PageSize
+}
+
+func convertJobTemplateResp(templates []*model.Jobtemplate) []JobTemplateresp {
+	result := make([]JobTemplateresp, 0, len(templates))
+	for _, template := range templates {
+		result = append(result, JobTemplateresp{
+			ID:        template.ID,
+			Name:      template.Name,
+			Describe:  template.Describe,
+			Document:  template.Document,
+			Template:  template.Template,
+			CreatedAt: template.CreatedAt,
+			UserInfo: model.UserInfo{
+				Username: template.User.Name,
+				Nickname: template.User.Nickname,
+			},
+		})
+	}
+	return result
+}
+
+// ListJobTemplates godoc
+//
+//	@Summary		List job templates
+//	@Description	List job templates with server-side pagination, search, owner filtering, and sorting
+//	@Tags			jobtemplate
+//	@Accept			json
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			page		query	int		false	"Page number"
+//	@Param			page_size	query	int		false	"Page size, 1-200"
+//	@Param			search		query	string	false	"Search template names"
+//	@Param			owner		query	string	false	"Owner scope: all, mine, or others"
+//	@Param			sort		query	string	false	"Sort by createdAt or -createdAt"
+//	@Success		200	{object}	resputil.Response[resputil.Page[JobTemplateresp]]	"Job template page"
+//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
+//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
+//	@Router			/v1/jobtemplate [get]
+func (mgr *JobTemplateMgr) ListJobTemplates(c *gin.Context) {
+	request, err := bindJobTemplateListQuery(c)
+	if err != nil {
+		resputil.HandleError(c, err)
+		return
+	}
+
+	j := query.Jobtemplate
+	templatesQuery := j.WithContext(c).Preload(j.User).Where(j.ID.IsNotNull())
+	if request.Search != "" {
+		templatesQuery = templatesQuery.Where(j.Name.Lower().Like(util.ContainsPattern(request.Search)))
+	}
+
+	if request.Owner != "all" {
+		token := util.GetToken(c)
+		if request.Owner == "mine" {
+			templatesQuery = templatesQuery.Where(j.UserID.Eq(token.UserID))
+		} else {
+			templatesQuery = templatesQuery.Where(j.UserID.Neq(token.UserID))
+		}
+	}
+
+	if request.Sort == "createdAt" {
+		templatesQuery = templatesQuery.Order(j.CreatedAt.Asc(), j.ID.Asc())
+	} else {
+		templatesQuery = templatesQuery.Order(j.CreatedAt.Desc(), j.ID.Desc())
+	}
+
+	templates, total, err := templatesQuery.FindByPage(request.offset(), request.PageSize)
+	if err != nil {
+		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "list job templates failed"))
+		return
+	}
+
+	resputil.Success(c, resputil.NewPage(
+		convertJobTemplateResp(templates),
+		total,
+		request.Page,
+		request.PageSize,
+	))
+}
+
 // swagger
 //
 //	@Summary		展示所有作业模板
@@ -66,27 +184,15 @@ type JobTemplateresp struct {
 //	@Router			/v1/jobtemplate/list [get]
 func (mgr *JobTemplateMgr) ListJobTemplate(c *gin.Context) {
 	j := query.Jobtemplate
-	templates, err := j.WithContext(c).Preload(j.User).Where(j.ID.IsNotNull()).Find()
+	templates, err := j.WithContext(c).
+		Preload(j.User).
+		Where(j.ID.IsNotNull()).
+		Find()
 	if err != nil {
 		resputil.Error(c, "Can't get jobtemplates", resputil.NotSpecified)
 		return
 	}
-	var result []JobTemplateresp
-	for i := range templates {
-		result = append(result, JobTemplateresp{
-			ID:        templates[i].ID,
-			Name:      templates[i].Name,
-			Describe:  templates[i].Describe,
-			Document:  templates[i].Document,
-			Template:  templates[i].Template,
-			CreatedAt: templates[i].CreatedAt,
-			UserInfo: model.UserInfo{
-				Username: templates[i].User.Name,
-				Nickname: templates[i].User.Nickname,
-			},
-		})
-	}
-	resputil.Success(c, result)
+	resputil.Success(c, convertJobTemplateResp(templates))
 }
 
 type GetJobTemplateReq struct {
