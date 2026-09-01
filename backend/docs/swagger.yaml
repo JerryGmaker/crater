@@ -426,6 +426,19 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ApprovalOrderResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_handler.ApprovalOrderResp'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   github_com_raids-lab_crater_internal_resputil.Page-internal_handler_DatasetResp:
     properties:
       items:
@@ -574,6 +587,16 @@ definitions:
       msg:
         type: string
     type: object
+  ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ApprovalOrderResp
+  : properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ApprovalOrderResp'
+      msg:
+        type: string
+    type: object
   ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_DatasetResp
   : properties:
       code:
@@ -661,6 +684,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/internal_handler.ApprovalOrderResp'
+      msg:
+        type: string
+    type: object
+  github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ApprovalOrderSummaryResp:
+    properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/internal_handler.ApprovalOrderSummaryResp'
       msg:
         type: string
     type: object
@@ -1303,6 +1336,17 @@ definitions:
         $ref: '#/definitions/github_com_raids-lab_crater_dao_model.ApprovalOrderStatus'
       type:
         $ref: '#/definitions/github_com_raids-lab_crater_dao_model.ApprovalOrderType'
+    type: object
+  internal_handler.ApprovalOrderSummaryResp:
+    properties:
+      pendingDataset:
+        type: integer
+      pendingJobDelay:
+        type: integer
+      totalPending:
+        type: integer
+      updatedAt:
+        type: string
     type: object
   internal_handler.ApprovalOrderreq:
     properties:
@@ -3644,6 +3688,61 @@ paths:
       security:
       - Bearer: []
       summary: 检查待审批作业工单有效性
+      tags:
+      - approvalorder
+  /v1/admin/approvalorder/page:
+    get:
+      description: 按统一分页协议获取所有审批工单
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search order names
+        in: query
+        name: search
+        type: string
+      - description: Filter by order type; repeatable
+        in: query
+        name: type
+        type: string
+      - description: Filter by order status; repeatable
+        in: query
+        name: status
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ApprovalOrderResp'
+      security:
+      - Bearer: []
+      summary: 管理员获取审批工单分页
+      tags:
+      - approvalorder
+  /v1/admin/approvalorder/summary:
+    get:
+      description: 返回与列表分页无关的审批工单统计数据
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ApprovalOrderSummaryResp'
+      security:
+      - Bearer: []
+      summary: 获取审批工单聚合统计
       tags:
       - approvalorder
   /v1/admin/dataset/alldataset:
@@ -5998,6 +6097,46 @@ paths:
       security:
       - Bearer: []
       summary: 通过名称获取审批工单
+      tags:
+      - approvalorder
+  /v1/approvalorder/page:
+    get:
+      description: 按统一分页协议获取当前用户创建的审批工单
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search order names
+        in: query
+        name: search
+        type: string
+      - description: Filter by order type; repeatable
+        in: query
+        name: type
+        type: string
+      - description: Filter by order status; repeatable
+        in: query
+        name: status
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ApprovalOrderResp'
+      security:
+      - Bearer: []
+      summary: 获取我的审批工单分页
       tags:
       - approvalorder
   /v1/auth/switch:
