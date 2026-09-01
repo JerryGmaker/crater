@@ -452,6 +452,19 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_raids-lab_crater_internal_resputil.Page-internal_handler_GpuAnalysisWithJobInfo:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_handler.GpuAnalysisWithJobInfo'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   github_com_raids-lab_crater_internal_resputil.Page-internal_handler_JobTemplateresp:
     properties:
       items:
@@ -604,6 +617,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_DatasetResp'
+      msg:
+        type: string
+    type: object
+  ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_GpuAnalysisWithJobInfo
+  : properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_GpuAnalysisWithJobInfo'
       msg:
         type: string
     type: object
@@ -4027,6 +4050,54 @@ paths:
       security:
       - Bearer: []
       summary: 更新管理员对分析记录的审核状态
+      tags:
+      - GpuAnalysis
+  /v1/admin/gpu-analysis/page:
+    get:
+      description: 按搜索、审核状态和风险等级过滤后排序分页返回 GPU 分析记录
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search job or user name
+        in: query
+        name: search
+        type: string
+      - description: Filter by review status; repeatable
+        in: query
+        name: ReviewStatus
+        type: integer
+      - description: Filter by risk level; repeatable
+        in: query
+        name: Phase2Score
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_GpuAnalysisWithJobInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any'
+      security:
+      - Bearer: []
+      summary: 管理员分页获取 GPU 分析记录
       tags:
       - GpuAnalysis
   /v1/admin/gpu-analysis/trigger:
