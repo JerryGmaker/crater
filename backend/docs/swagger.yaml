@@ -478,6 +478,19 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_raids-lab_crater_internal_resputil.Page-internal_handler_operations_OperationLogResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_handler_operations.OperationLogResp'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   github_com_raids-lab_crater_internal_resputil.Page-internal_handler_vcjob_JobResp:
     properties:
       items:
@@ -637,6 +650,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_JobTemplateresp'
+      msg:
+        type: string
+    type: object
+  ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_operations_OperationLogResp
+  : properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_operations_OperationLogResp'
       msg:
         type: string
     type: object
@@ -4495,6 +4518,58 @@ paths:
       security:
       - Bearer: []
       summary: 获取操作日志列表
+      tags:
+      - OperationLog
+  /v1/admin/operation-logs/page:
+    get:
+      description: 按统一分页协议获取操作日志，筛选和排序在数据库中执行
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search operator, type, target, or message
+        in: query
+        name: search
+        type: string
+      - description: Filter by operation type
+        in: query
+        name: operation_type
+        type: string
+      - description: Filter by operator
+        in: query
+        name: operator
+        type: string
+      - description: Filter by target
+        in: query
+        name: target
+        type: string
+      - description: Start time, RFC3339
+        in: query
+        name: start_time
+        type: string
+      - description: End time, RFC3339
+        in: query
+        name: end_time
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_operations_OperationLogResp'
+      security:
+      - Bearer: []
+      summary: 获取操作日志分页
       tags:
       - OperationLog
   /v1/admin/projects:

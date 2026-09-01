@@ -51,6 +51,21 @@ func (s *OperationLogService) List(
 	startTime,
 	endTime *time.Time,
 ) ([]*model.OperationLog, int64, error) {
+	return s.ListPage(ctx, page, pageSize, operator, opType, target, search, startTime, endTime, "created_at DESC")
+}
+
+func (s *OperationLogService) ListPage(
+	ctx context.Context,
+	page,
+	pageSize int,
+	operator,
+	opType,
+	target,
+	search string,
+	startTime,
+	endTime *time.Time,
+	sortClause string,
+) ([]*model.OperationLog, int64, error) {
 	var logs []*model.OperationLog
 	var total int64
 	db := query.GetDB().WithContext(ctx).Model(&model.OperationLog{})
@@ -87,7 +102,7 @@ func (s *OperationLogService) List(
 	}
 
 	offset := (page - 1) * pageSize
-	err = db.Order("created_at desc").Offset(offset).Limit(pageSize).Find(&logs).Error
+	err = db.Order(sortClause).Offset(offset).Limit(pageSize).Find(&logs).Error
 	return logs, total, err
 }
 
