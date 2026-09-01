@@ -1919,6 +1919,62 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/v1/admin/images/image/page": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ImagePack"
+                ],
+                "summary": "分页获取全部镜像",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search image, description, or creator",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by visibility; repeatable",
+                        "name": "imageShareStatus",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_ImageInfo"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/admin/images/kaniko": {
             "get": {
                 "security": [
@@ -6817,6 +6873,62 @@ const docTemplate = `{
                 "responses": {}
             }
         },
+        "/v1/images/image/page": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ImagePack"
+                ],
+                "summary": "分页获取当前用户可见镜像",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search image, description, or creator",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by visibility; repeatable",
+                        "name": "imageShareStatus",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_ImageInfo"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/images/image/{id}": {
             "delete": {
                 "security": [
@@ -11548,6 +11660,44 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_raids-lab_crater_dao_model.ImageShareType": {
+            "type": "string",
+            "enum": [
+                "Private",
+                "Public",
+                "UserShare",
+                "AccountShare"
+            ],
+            "x-enum-varnames": [
+                "Private",
+                "Public",
+                "UserShare",
+                "AccountShare"
+            ]
+        },
+        "github_com_raids-lab_crater_dao_model.ImageSourceType": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-comments": {
+                "ImageCreateType": "镜像制造",
+                "ImageUploadType": "镜像上传"
+            },
+            "x-enum-descriptions": [
+                "",
+                "镜像制造",
+                "镜像上传"
+            ],
+            "x-enum-varnames": [
+                "_",
+                "ImageCreateType",
+                "ImageUploadType"
+            ]
+        },
         "github_com_raids-lab_crater_dao_model.JobType": {
             "type": "string",
             "enum": [
@@ -12023,6 +12173,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_ImageInfo": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler_image.ImageInfo"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_KanikoInfo": {
             "type": "object",
             "properties": {
@@ -12360,6 +12530,21 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_ImageInfo": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_ImageInfo"
                 },
                 "msg": {
                     "type": "string"
@@ -15350,6 +15535,53 @@ const docTemplate = `{
                 },
                 "value": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler_image.ImageInfo": {
+            "type": "object",
+            "properties": {
+                "ID": {
+                    "type": "integer"
+                },
+                "archs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "imageBuildSource": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.ImageSourceType"
+                },
+                "imageLink": {
+                    "type": "string"
+                },
+                "imageShareStatus": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.ImageShareType"
+                },
+                "imagepackName": {
+                    "type": "string"
+                },
+                "isPublic": {
+                    "type": "boolean"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "taskType": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.JobType"
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.UserInfo"
                 }
             }
         },

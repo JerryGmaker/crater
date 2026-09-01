@@ -434,6 +434,12 @@ export const apiUserGetKaniko = (name: string) =>
 
 export const apiUserListImage = () => apiV1Get<IResponse<ListImageResponse>>('images/image')
 
+export const apiUserListImagePage = (params: RemoteTableParams, signal?: AbortSignal) =>
+  apiV1Get<IResponse<IPage<ImageInfoResponse>>>('images/image/page', {
+    searchParams: buildRemoteSearchParams(params),
+    signal,
+  })
+
 export const apiUserChangeImagePublicStatus = (id: number) =>
   apiV1Post<IResponse<string>>(`images/change/${id}`)
 
