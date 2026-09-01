@@ -96,6 +96,22 @@ definitions:
     - Snapshot
     - EnvdAdvanced
     - EnvdRaw
+  github_com_raids-lab_crater_dao_model.BuildStatus:
+    enum:
+    - Initial
+    - Pending
+    - Running
+    - Finished
+    - Failed
+    - Canceled
+    type: string
+    x-enum-varnames:
+    - BuildJobInitial
+    - BuildJobPending
+    - BuildJobRunning
+    - BuildJobFinished
+    - BuildJobFailed
+    - BuildJobCanceled
   github_com_raids-lab_crater_dao_model.CraterResourceType:
     enum:
     - gpu
@@ -561,6 +577,19 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_KanikoInfo:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_handler_image.KanikoInfo'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   github_com_raids-lab_crater_internal_resputil.Page-internal_handler_operations_OperationLogResp:
     properties:
       items:
@@ -763,6 +792,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserResp'
+      msg:
+        type: string
+    type: object
+  ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_KanikoInfo
+  : properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_KanikoInfo'
       msg:
         type: string
     type: object
@@ -2729,6 +2768,35 @@ definitions:
     - label
     - value
     type: object
+  internal_handler_image.KanikoInfo:
+    properties:
+      ID:
+        type: integer
+      archs:
+        items:
+          type: string
+        type: array
+      buildSource:
+        $ref: '#/definitions/github_com_raids-lab_crater_dao_model.BuildSource'
+      createdAt:
+        type: string
+      description:
+        type: string
+      imageLink:
+        type: string
+      imagepackName:
+        type: string
+      size:
+        type: integer
+      status:
+        $ref: '#/definitions/github_com_raids-lab_crater_dao_model.BuildStatus'
+      tags:
+        items:
+          type: string
+        type: array
+      userInfo:
+        $ref: '#/definitions/github_com_raids-lab_crater_dao_model.UserInfo'
+    type: object
   internal_handler_image.UpdateImageArchRequest:
     properties:
       archs:
@@ -4518,6 +4586,41 @@ paths:
       security:
       - Bearer: []
       summary: 创建ImagePack CRD和数据库kaniko entity
+      tags:
+      - ImagePack
+  /v1/admin/images/kaniko/page:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search image, description, or creator
+        in: query
+        name: search
+        type: string
+      - description: Filter by status; repeatable
+        in: query
+        name: status
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_KanikoInfo'
+      security:
+      - Bearer: []
+      summary: 分页获取全部镜像制作记录
       tags:
       - ImagePack
   /v1/admin/images/remove:
@@ -7610,6 +7713,41 @@ paths:
       security:
       - Bearer: []
       summary: 创建ImagePack CRD和数据库Kaniko entity
+      tags:
+      - ImagePack
+  /v1/images/kaniko/page:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search image, description, or creator
+        in: query
+        name: search
+        type: string
+      - description: Filter by status; repeatable
+        in: query
+        name: status
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_KanikoInfo'
+      security:
+      - Bearer: []
+      summary: 分页获取当前用户的镜像制作记录
       tags:
       - ImagePack
   /v1/images/podname:
