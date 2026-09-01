@@ -11,6 +11,7 @@ import (
 	"github.com/raids-lab/crater/dao/query"
 	"github.com/raids-lab/crater/internal/bizerr"
 	"github.com/raids-lab/crater/internal/resputil"
+	jobtemplateservice "github.com/raids-lab/crater/internal/service/jobtemplate"
 	"github.com/raids-lab/crater/internal/util"
 )
 
@@ -135,28 +136,15 @@ func (mgr *JobTemplateMgr) ListJobTemplates(c *gin.Context) {
 		return
 	}
 
-	j := query.Jobtemplate
-	templatesQuery := j.WithContext(c).Preload(j.User).Where(j.ID.IsNotNull())
-	if request.Search != "" {
-		templatesQuery = templatesQuery.Where(j.Name.Lower().Like(util.ContainsPattern(request.Search)))
-	}
-
-	if request.Owner != "all" {
-		token := util.GetToken(c)
-		if request.Owner == "mine" {
-			templatesQuery = templatesQuery.Where(j.UserID.Eq(token.UserID))
-		} else {
-			templatesQuery = templatesQuery.Where(j.UserID.Neq(token.UserID))
-		}
-	}
-
-	if request.Sort == "createdAt" {
-		templatesQuery = templatesQuery.Order(j.CreatedAt.Asc(), j.ID.Asc())
-	} else {
-		templatesQuery = templatesQuery.Order(j.CreatedAt.Desc(), j.ID.Desc())
-	}
-
-	templates, total, err := templatesQuery.FindByPage(request.offset(), request.PageSize)
+	token := util.GetToken(c)
+	templates, total, err := jobtemplateservice.List(c, jobtemplateservice.ListOptions{
+		Offset: request.offset(),
+		Limit:  request.PageSize,
+		Search: request.Search,
+		Owner:  request.Owner,
+		Sort:   request.Sort,
+		UserID: token.UserID,
+	})
 	if err != nil {
 		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "list job templates failed"))
 		return

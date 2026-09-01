@@ -35,7 +35,9 @@ const defaultListQuery: DataListRemoteQuery = {
   pageSize: 10,
   search: '',
   owner: 'all',
-  sort: 'descending',
+  tag: '所有标签',
+  sortField: 'createdAt',
+  sortDirection: 'descending',
 }
 
 // 新增 JSON 解析函数
@@ -71,9 +73,19 @@ function RouteComponent() {
     search: debouncedSearch,
   }
 
-  const { data: templatePage } = useQuery({
+  const { data: templatePage, isFetching } = useQuery({
     queryKey: ['data', 'jobtemplate', requestQuery],
-    queryFn: ({ signal }) => listJobTemplate(requestQuery, signal),
+    queryFn: ({ signal }) =>
+      listJobTemplate(
+        {
+          page: requestQuery.page,
+          pageSize: requestQuery.pageSize,
+          search: requestQuery.search,
+          owner: requestQuery.owner,
+          sort: requestQuery.sortDirection,
+        },
+        signal
+      ),
     select: (res) => res.data,
     placeholderData: keepPreviousData,
   })
@@ -100,7 +112,10 @@ function RouteComponent() {
         })) || []
       }
       remote={{
+        query: listQuery,
         total: templatePage?.total ?? 0,
+        isLoading: isFetching,
+        availableSortFields: ['createdAt'],
         onQueryChange: setListQuery,
       }}
       title="作业模板"
