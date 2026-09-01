@@ -1,10 +1,75 @@
 package handler
 
 import (
+	"net/http/httptest"
+	"strings"
 	"testing"
+
+	"github.com/gin-gonic/gin"
 
 	"github.com/raids-lab/crater/dao/model"
 )
+
+func TestBindDatasetListPageQuery(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      string
+		wantPage   int
+		wantSize   int
+		wantSearch string
+		wantSort   string
+		wantType   model.DataType
+		wantErr    bool
+	}{
+		{
+			name:     "defaults",
+			query:    "",
+			wantPage: 1,
+			wantSize: 10,
+			wantSort: "-createdAt",
+			wantType: model.DataTypeShareFile,
+		},
+		{
+			name:       "normalizes supported query",
+			query:      "page=2&page_size=20&search=%E6%B5%8B%E8%AF%95&owner=mine&sort=-mountCount&type=sharefile",
+			wantPage:   2,
+			wantSize:   20,
+			wantSearch: "测试",
+			wantSort:   "-mountCount",
+			wantType:   model.DataTypeShareFile,
+		},
+		{
+			name:    "rejects unsupported sort",
+			query:   "sort=name",
+			wantErr: true,
+		},
+		{
+			name:    "rejects oversized search",
+			query:   "search=" + strings.Repeat("a", datasetMaxSearchRunes+1),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			context, _ := gin.CreateTestContext(httptest.NewRecorder())
+			context.Request = httptest.NewRequest("GET", "/api/v1/dataset/mydataset/page?"+tt.query, nil)
+
+			got, err := bindDatasetListPageQuery(context)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("bindDatasetListPageQuery() error = %v, wantErr=%v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if got.Page != tt.wantPage || got.PageSize != tt.wantSize || got.Search != tt.wantSearch ||
+				got.Sort != tt.wantSort || got.Type != tt.wantType {
+				t.Fatalf("unexpected query: %#v", got)
+			}
+		})
+	}
+}
 
 func TestNormalizedOrganizationLogoKey(t *testing.T) {
 	t.Parallel()

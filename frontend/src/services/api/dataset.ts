@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import { apiV1Delete, apiV1Get, apiV1Post } from '@/services/client'
-import { IResponse } from '@/services/types'
+import { IPage, IResponse } from '@/services/types'
 
 import { IUserAttributes } from './admin/user'
 import { IUserInfo } from './vcjob'
@@ -54,6 +54,15 @@ export interface IDataset {
   sourceCreatedAt?: string
   extra: Extra
   userInfo: IUserInfo
+}
+
+export interface DatasetListParams {
+  page: number
+  pageSize: number
+  search: string
+  owner: 'all' | 'mine' | 'others'
+  sort: 'createdAt' | '-createdAt' | 'updatedAt' | '-updatedAt' | 'mountCount' | '-mountCount'
+  type: IDataset['type']
 }
 
 export interface UserDataset {
@@ -101,6 +110,25 @@ export interface cancelSharedQueueResp {
   queueID: number
 }
 export const apiGetDataset = () => apiV1Get<IResponse<IDataset[]>>('dataset/mydataset')
+
+export const apiGetDatasetPaged = (params: DatasetListParams, signal?: AbortSignal) => {
+  const searchParams = new URLSearchParams({
+    page: String(params.page),
+    page_size: String(params.pageSize),
+    owner: params.owner,
+    sort: params.sort,
+    type: params.type,
+  })
+  const search = params.search.trim()
+  if (search) {
+    searchParams.set('search', search)
+  }
+
+  return apiV1Get<IResponse<IPage<IDataset>>>('dataset/mydataset/page', {
+    searchParams,
+    signal,
+  })
+}
 
 //因为table表单的query必须要返回数组，实际上数组里只有一个数据集的数据
 export const apiGetDatasetByID = (datasetID: number) =>

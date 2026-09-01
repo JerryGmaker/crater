@@ -5320,6 +5320,81 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/dataset/mydataset/page": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "按权限、类型、搜索和排序条件过滤后分页返回数据资源",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dataset"
+                ],
+                "summary": "获取可访问数据资源分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search name or description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Owner scope: all, mine, or others",
+                        "name": "owner",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by createdAt, updatedAt, or mountCount",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource type: dataset, model, or sharefile",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_DatasetResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/dataset/share/queue": {
             "post": {
                 "security": [
@@ -10352,6 +10427,9 @@ const docTemplate = `{
         "datatypes.JSONType-array_string": {
             "type": "object"
         },
+        "datatypes.JSONType-github_com_raids-lab_crater_dao_model_ExtraContent": {
+            "type": "object"
+        },
         "datatypes.JSONType-github_com_raids-lab_crater_dao_model_QueueQuota": {
             "type": "object"
         },
@@ -10924,6 +11002,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_DatasetResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.DatasetResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_JobTemplateresp": {
             "type": "object",
             "properties": {
@@ -11121,6 +11219,21 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.List-internal_handler_operations_OperationLogResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_DatasetResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_DatasetResp"
                 },
                 "msg": {
                     "type": "string"
@@ -12392,6 +12505,95 @@ const docTemplate = `{
                 },
                 "weburl": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.DatasetResp": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "describe": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "downloadCount": {
+                    "type": "integer"
+                },
+                "extra": {
+                    "$ref": "#/definitions/datatypes.JSONType-github_com_raids-lab_crater_dao_model_ExtraContent"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "library": {
+                    "type": "string"
+                },
+                "license": {
+                    "type": "string"
+                },
+                "likes": {
+                    "type": "integer"
+                },
+                "loginRequired": {
+                    "type": "boolean"
+                },
+                "modelType": {
+                    "type": "string"
+                },
+                "mountCount": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organization": {
+                    "type": "string"
+                },
+                "organizationUrl": {
+                    "type": "string"
+                },
+                "parameterCount": {
+                    "type": "integer"
+                },
+                "readme": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "sourceCreatedAt": {
+                    "type": "string"
+                },
+                "sourceGated": {
+                    "type": "boolean"
+                },
+                "sourcePrivate": {
+                    "type": "boolean"
+                },
+                "sourceUpdatedAt": {
+                    "type": "string"
+                },
+                "task": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.DataType"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.UserInfo"
                 }
             }
         },
