@@ -50,6 +50,7 @@ func (mgr *UserMgr) RegisterProtected(g *gin.RouterGroup) {
 }
 
 func (mgr *UserMgr) RegisterAdmin(g *gin.RouterGroup) {
+	g.GET("/page", mgr.ListUserPage)
 	g.GET("", mgr.ListUser)
 	g.GET("/billing/summary", mgr.ListUserBillingSummary)
 	g.GET("/baseinfo", mgr.ListUserBaseInfo)
