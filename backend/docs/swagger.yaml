@@ -3770,6 +3770,50 @@ paths:
       summary: 获取所有数据集
       tags:
       - Dataset
+  /v1/admin/dataset/alldataset/page:
+    get:
+      description: 按类型、搜索和排序条件过滤后分页返回数据资源
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search name or description
+        in: query
+        name: search
+        type: string
+      - description: Filter by type; repeatable
+        in: query
+        name: type
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_DatasetResp'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any'
+      security:
+      - Bearer: []
+      summary: 管理员分页获取所有数据资源
+      tags:
+      - Dataset
   /v1/admin/dataset/cancelshare/queue:
     post:
       consumes:

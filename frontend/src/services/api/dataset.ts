@@ -13,6 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import {
+  type RemoteTableParams,
+  buildRemoteSearchParams,
+} from '@/components/query-table/remote-state'
+
 import { apiV1Delete, apiV1Get, apiV1Post } from '@/services/client'
 import { IPage, IResponse } from '@/services/types'
 
@@ -139,6 +144,12 @@ export const apiAdminGetDatasetByID = (datasetID: number) =>
   apiV1Get<IResponse<IDataset[]>>(`dataset/detail/${datasetID}`)
 
 export const apiAdminGetDataset = () => apiV1Get<IResponse<IDataset[]>>('admin/dataset/alldataset')
+
+export const apiAdminGetDatasetPaged = (params: RemoteTableParams, signal?: AbortSignal) =>
+  apiV1Get<IResponse<IPage<IDataset>>>('admin/dataset/alldataset/page', {
+    searchParams: buildRemoteSearchParams(params),
+    signal,
+  })
 
 export const apiShareDatasetwithUser = (ud: UserDataset) =>
   apiV1Post<IResponse<string>>('dataset/share/user', ud)

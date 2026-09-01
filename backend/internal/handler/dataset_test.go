@@ -71,6 +71,57 @@ func TestBindDatasetListPageQuery(t *testing.T) {
 	}
 }
 
+func TestBindAdminDatasetListPageQuery(t *testing.T) {
+	tests := []struct {
+		name       string
+		query      string
+		wantPage   int
+		wantSize   int
+		wantSearch string
+		wantSort   string
+		wantTypes  []string
+		wantErr    bool
+	}{
+		{name: "defaults", query: "", wantPage: 1, wantSize: 10, wantSort: "-updatedAt"},
+		{
+			name: "normalizes filters", query: "page=2&page_size=20&search=%E6%B5%8B%E8%AF%95&type=model&type=dataset&sort=-mountCount,name",
+			wantPage: 2, wantSize: 20, wantSearch: "测试", wantSort: "-mountCount,name", wantTypes: []string{"model", "dataset"},
+		},
+		{name: "rejects unsupported type", query: "type=unknown", wantErr: true},
+		{name: "rejects unsupported sort", query: "sort=owner", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gin.SetMode(gin.TestMode)
+			context, _ := gin.CreateTestContext(httptest.NewRecorder())
+			context.Request = httptest.NewRequest("GET", "/api/v1/admin/dataset/alldataset/page?"+tt.query, nil)
+
+			got, types, err := bindAdminDatasetListPageQuery(context)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("bindAdminDatasetListPageQuery() error = %v, wantErr=%v", err, tt.wantErr)
+			}
+			if tt.wantErr {
+				return
+			}
+			if got.Page != tt.wantPage || got.PageSize != tt.wantSize || got.Search != tt.wantSearch || got.Sort != tt.wantSort {
+				t.Fatalf("unexpected query: %#v", got)
+			}
+			if strings.Join(types, ",") != strings.Join(tt.wantTypes, ",") {
+				t.Fatalf("types = %v, want %v", types, tt.wantTypes)
+			}
+		})
+	}
+}
+
+func TestAdminDatasetSortClauses(t *testing.T) {
+	got := adminDatasetSortClauses("-mountCount,name")
+	want := []string{"mount_count DESC", "name ASC", "id DESC"}
+	if strings.Join(got, ",") != strings.Join(want, ",") {
+		t.Fatalf("adminDatasetSortClauses() = %v, want %v", got, want)
+	}
+}
+
 func TestNormalizedOrganizationLogoKey(t *testing.T) {
 	t.Parallel()
 

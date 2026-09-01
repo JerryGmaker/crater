@@ -66,6 +66,7 @@ func (mgr *DatasetMgr) RegisterProtected(g *gin.RouterGroup) {
 }
 
 func (mgr *DatasetMgr) RegisterAdmin(g *gin.RouterGroup) {
+	g.GET("/alldataset/page", mgr.GetAllDatasetPage)
 	g.GET("/alldataset", mgr.GetAllDataset)
 	g.POST("/share/user", mgr.AdminShareDatasetWithUser)
 	g.POST("/share/queue", mgr.AdminShareDatasetWithQueue)
