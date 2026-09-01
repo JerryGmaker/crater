@@ -314,6 +314,45 @@ definitions:
       guaranteed:
         $ref: '#/definitions/v1.ResourceList'
     type: object
+  github_com_raids-lab_crater_dao_model.Resource:
+    properties:
+      amount:
+        description: Resource quantity
+        type: integer
+      amountSingleMax:
+        type: integer
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      format:
+        type: string
+      id:
+        type: integer
+      label:
+        type: string
+      name:
+        description: Resource name
+        type: string
+      networks:
+        items:
+          $ref: '#/definitions/github_com_raids-lab_crater_dao_model.Resource'
+        type: array
+      priority:
+        type: integer
+      resourceType:
+        type: string
+      type:
+        allOf:
+        - $ref: '#/definitions/github_com_raids-lab_crater_dao_model.CraterResourceType'
+        description: Resource relationship
+      unitPrice:
+        type: integer
+      updatedAt:
+        type: string
+      vendorDomain:
+        type: string
+    type: object
   github_com_raids-lab_crater_dao_model.ReviewStatus:
     enum:
     - 0
@@ -607,6 +646,19 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ResourceResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_handler.ResourceResp'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserProjectGetResp:
     properties:
       items:
@@ -861,6 +913,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ModelDownloadResp'
+      msg:
+        type: string
+    type: object
+  ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ResourceResp
+  : properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ResourceResp'
       msg:
         type: string
     type: object
@@ -2315,6 +2377,33 @@ definitions:
         additionalProperties:
           type: string
         type: object
+    type: object
+  internal_handler.ResourceResp:
+    properties:
+      ID:
+        type: integer
+      amount:
+        type: integer
+      amountSingleMax:
+        type: integer
+      format:
+        type: string
+      label:
+        type: string
+      name:
+        type: string
+      networks:
+        items:
+          $ref: '#/definitions/github_com_raids-lab_crater_dao_model.Resource'
+        type: array
+      priority:
+        type: integer
+      resourceType:
+        type: string
+      type:
+        $ref: '#/definitions/github_com_raids-lab_crater_dao_model.CraterResourceType'
+      vendorDomain:
+        type: string
     type: object
   internal_handler.ReviewApprovalOrderReq:
     properties:
@@ -9735,6 +9824,49 @@ paths:
       security:
       - Bearer: []
       summary: Get all RDMA resources linked to a GPU resource
+      tags:
+      - Resource
+  /v1/resources/page:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search resource name, label, or vendor
+        in: query
+        name: search
+        type: string
+      - description: Resource type filter; repeatable
+        in: query
+        name: type
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      - description: Only resources with GPU type
+        in: query
+        name: withVendorDomain
+        type: boolean
+      - description: Vendor domain prefix
+        in: query
+        name: domainPrefix
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ResourceResp'
+      security:
+      - Bearer: []
+      summary: 分页获取集群资源
       tags:
       - Resource
   /v1/spjobs/{name}/events:

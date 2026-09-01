@@ -9824,6 +9824,74 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/resources/page": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Resource"
+                ],
+                "summary": "分页获取集群资源",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search resource name, label, or vendor",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource type filter; repeatable",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Only resources with GPU type",
+                        "name": "withVendorDomain",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Vendor domain prefix",
+                        "name": "domainPrefix",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ResourceResp"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/spjobs/{name}/events": {
             "get": {
                 "security": [
@@ -11875,6 +11943,66 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_raids-lab_crater_dao_model.Resource": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "description": "Resource quantity",
+                    "type": "integer"
+                },
+                "amountSingleMax": {
+                    "type": "integer"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "description": "Resource name",
+                    "type": "string"
+                },
+                "networks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.Resource"
+                    }
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "resourceType": {
+                    "type": "string"
+                },
+                "type": {
+                    "description": "Resource relationship",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.CraterResourceType"
+                        }
+                    ]
+                },
+                "unitPrice": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "vendorDomain": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_raids-lab_crater_dao_model.ReviewStatus": {
             "type": "integer",
             "format": "int32",
@@ -12291,6 +12419,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ResourceResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.ResourceResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserProjectGetResp": {
             "type": "object",
             "properties": {
@@ -12673,6 +12821,21 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ModelDownloadResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ResourceResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ResourceResp"
                 },
                 "msg": {
                     "type": "string"
@@ -14860,6 +15023,47 @@ const docTemplate = `{
                     "additionalProperties": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "internal_handler.ResourceResp": {
+            "type": "object",
+            "properties": {
+                "ID": {
+                    "type": "integer"
+                },
+                "amount": {
+                    "type": "integer"
+                },
+                "amountSingleMax": {
+                    "type": "integer"
+                },
+                "format": {
+                    "type": "string"
+                },
+                "label": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "networks": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.Resource"
+                    }
+                },
+                "priority": {
+                    "type": "integer"
+                },
+                "resourceType": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.CraterResourceType"
+                },
+                "vendorDomain": {
+                    "type": "string"
                 }
             }
         },
