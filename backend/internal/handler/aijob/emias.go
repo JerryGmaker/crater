@@ -68,6 +68,12 @@ func (mgr *AIJobMgr) GetName() string { return mgr.name }
 func (mgr *AIJobMgr) RegisterPublic(_ *gin.RouterGroup) {}
 
 func (mgr *AIJobMgr) RegisterProtected(g *gin.RouterGroup) {
+	g.GET("page", mgr.ListSelfJobPage)
+	g.GET("page/facets", mgr.ListSelfJobFacets)
+	g.GET("all/page", mgr.ListAllJobPage)
+	g.GET("all/page/facets", mgr.ListAllJobFacets)
+	g.GET("user/:username/page", mgr.ListUserJobPage)
+	g.GET("user/:username/page/facets", mgr.ListUserJobFacets)
 	g.GET(":id/token", mgr.GetJupyterToken)
 	g.GET("", mgr.ListUserJob)
 	g.GET("all", mgr.ListAllJob)
@@ -84,6 +90,10 @@ func (mgr *AIJobMgr) RegisterProtected(g *gin.RouterGroup) {
 }
 
 func (mgr *AIJobMgr) RegisterAdmin(g *gin.RouterGroup) {
+	g.GET("page", mgr.ListAllJobPage)
+	g.GET("page/facets", mgr.ListAllJobFacets)
+	g.GET("user/:username/page", mgr.ListUserJobPage)
+	g.GET("user/:username/page/facets", mgr.ListUserJobFacets)
 	g.GET("", mgr.ListUserJob)
 	g.GET(":id/detail", mgr.GetDetail)
 }
@@ -345,6 +355,15 @@ func (mgr *AIJobMgr) ListAllJob(c *gin.Context) {
 }
 
 func convertToAIJobResp(c context.Context, aiTask *model.AITask) (AIJobResp, error) {
+	u := query.User
+	user, err := u.WithContext(c).Where(u.Name.Eq(aiTask.Owner)).First()
+	if err != nil {
+		return AIJobResp{}, err
+	}
+	return convertToAIJobRespWithUser(aiTask, user), nil
+}
+
+func convertToAIJobRespWithUser(aiTask *model.AITask, user *model.User) AIJobResp {
 	var runningTimestamp metav1.Time
 	if aiTask.StartedAt != nil {
 		runningTimestamp = metav1.NewTime(*aiTask.StartedAt)
@@ -364,10 +383,9 @@ func convertToAIJobResp(c context.Context, aiTask *model.AITask) (AIJobResp, err
 
 	resources, _ := model.JSONToResourceList(aiTask.ResourceRequest)
 
-	u := query.User
-	user, err := u.WithContext(c).Where(u.Name.Eq(aiTask.Owner)).First()
-	if err != nil {
-		return AIJobResp{}, err
+	userInfo := model.UserInfo{Username: aiTask.Owner, Nickname: aiTask.Owner}
+	if user != nil {
+		userInfo = model.UserInfo{Nickname: user.Nickname, Username: user.Name}
 	}
 
 	profileStatus := aiTask.ProfileStatus
@@ -380,13 +398,10 @@ func convertToAIJobResp(c context.Context, aiTask *model.AITask) (AIJobResp, err
 		Priority:      priority,
 		ProfileStatus: strconv.FormatUint(uint64(profileStatus), 10),
 		JobResp: vcjob.JobResp{
-			Name:    aiTask.TaskName,
-			JobName: fmt.Sprintf("%d", aiTask.ID),
-			Owner:   aiTask.Owner,
-			UserInfo: model.UserInfo{
-				Nickname: user.Nickname,
-				Username: user.Name,
-			},
+			Name:               aiTask.TaskName,
+			JobName:            fmt.Sprintf("%d", aiTask.ID),
+			Owner:              aiTask.Owner,
+			UserInfo:           userInfo,
 			JobType:            aiTask.TaskType,
 			Queue:              aiTask.UserName,
 			Status:             string(convertJobPhase(aiTask)),
@@ -396,7 +411,7 @@ func convertToAIJobResp(c context.Context, aiTask *model.AITask) (AIJobResp, err
 			Nodes:              []string{aiTask.Node},
 			Resources:          resources,
 		},
-	}, nil
+	}
 }
 
 type AIJobDetailReq struct {

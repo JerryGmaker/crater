@@ -13,7 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  type UseQueryResult,
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { Link, linkOptions } from '@tanstack/react-router'
 import { ColumnDef } from '@tanstack/react-table'
 import { EllipsisVerticalIcon as DotsHorizontalIcon } from 'lucide-react'
@@ -40,8 +46,9 @@ import { TimeDistance } from '@/components/custom/time-distance'
 import JobResourceSummary from '@/components/job/job-resource-summary'
 import { getHeader } from '@/components/job/statuses'
 import { JobNameCell } from '@/components/label/job-name-label'
-import { DataTable } from '@/components/query-table'
 import { DataTableColumnHeader } from '@/components/query-table/column-header'
+import { RemoteDataTable } from '@/components/query-table/remote'
+import { buildFacetQueryKey, buildRemoteQueryKey } from '@/components/query-table/remote-state'
 import { DataTableToolbarConfig } from '@/components/query-table/toolbar'
 import {
   AlertDialog,
@@ -60,10 +67,14 @@ import { apiGetBillingStatus } from '@/services/api/system-config'
 import {
   IJobInfo,
   JobType,
+  apiJobBatchFacets,
   apiJobBatchList,
   apiJobDelete,
   getDisplayJobPhase,
 } from '@/services/api/vcjob'
+import type { IFacetResponse, IPage } from '@/services/types'
+
+import useRemoteTableState from '@/hooks/use-remote-table-state'
 
 import { isBillingVisibleForUser } from '@/utils/billing-visibility'
 import { logger } from '@/utils/loglevel'
@@ -126,10 +137,7 @@ const getProfilingStatuses = (t: (key: string) => string) => [
 ]
 
 const getToolbarConfig = (t: (key: string) => string): DataTableToolbarConfig => ({
-  filterInput: {
-    placeholder: t('jobs.toolbar.searchName'),
-    key: 'title',
-  },
+  globalSearch: { enabled: true, placeholder: t('jobs.toolbar.searchName') },
   filterOptions: [
     {
       key: 'status',
@@ -150,6 +158,33 @@ const getToolbarConfig = (t: (key: string) => string): DataTableToolbarConfig =>
   getHeader: getHeader,
 })
 
+const getRemoteToolbarConfig = (
+  t: (key: string) => string,
+  facets?: IFacetResponse
+): DataTableToolbarConfig => {
+  const config = getToolbarConfig(t)
+  const facetKeys: Record<string, string> = {
+    status: 'status',
+    priority: 'priority',
+    profileStatus: 'profile_status',
+  }
+  return {
+    ...config,
+    filterOptions: config.filterOptions.map((filter) => ({
+      ...filter,
+      remoteFacets: true,
+      option: filter.option?.map((option) => ({
+        ...option,
+        count: facets
+          ? (facets.facets[facetKeys[filter.key]]?.find(
+              (item) => item.value === String(option.value)
+            )?.count ?? 0)
+          : undefined,
+      })),
+    })),
+  }
+}
+
 interface ColocateJobInfo extends IJobInfo {
   id: number
   profileStatus: string
@@ -164,14 +199,19 @@ const ColocateOverview = () => {
     queryFn: () => apiGetBillingStatus().then((res) => res.data),
   })
   const billingVisible = isBillingVisibleForUser(billingStatus)
+  const tableState = useRemoteTableState('portal_aijob_batch', {
+    sorting: [{ id: 'createdAt', desc: true }],
+  })
 
   const batchQuery = useQuery({
-    queryKey: ['job', 'batch'],
-    queryFn: () => apiJobBatchList({ page: 1, page_size: 200, filters: {} }),
-    select: (res) =>
-      res.data.items
-        .filter((task) => task.jobType !== JobType.Jupyter)
-        .sort((a, b) => b.createdAt.localeCompare(a.createdAt)) as unknown as ColocateJobInfo[],
+    queryKey: buildRemoteQueryKey('jobs-aijob-batch', tableState.params),
+    queryFn: async ({ signal }) => (await apiJobBatchList(tableState.params, signal)).data,
+    placeholderData: keepPreviousData,
+    refetchInterval: REFETCH_INTERVAL,
+  })
+  const facetsQuery = useQuery({
+    queryKey: buildFacetQueryKey('jobs-aijob-batch', tableState.params),
+    queryFn: async ({ signal }) => (await apiJobBatchFacets(tableState.params, signal)).data,
     refetchInterval: REFETCH_INTERVAL,
   })
   const billingQuery = useQuery({
@@ -188,25 +228,41 @@ const ColocateOverview = () => {
   const mergedBatchQuery = useMemo(
     () =>
       ({
-        data: (batchQuery.data ?? []).map((job) => ({
-          ...job,
-          billedPointsTotal: billingQuery.data?.[job.jobName] ?? 0,
-        })),
+        data: batchQuery.data
+          ? {
+              ...batchQuery.data,
+              items: batchQuery.data.items.map((job) => ({
+                ...job,
+                billedPointsTotal: billingQuery.data?.[job.jobName] ?? 0,
+              })),
+            }
+          : undefined,
         isLoading: batchQuery.isLoading || (billingVisible && billingQuery.isLoading),
+        isError: batchQuery.isError || (billingVisible && billingQuery.isError),
+        error: batchQuery.error ?? billingQuery.error,
+        isFetching: batchQuery.isFetching || (billingVisible && billingQuery.isFetching),
+        isPlaceholderData: batchQuery.isPlaceholderData,
         dataUpdatedAt: Math.max(
           batchQuery.dataUpdatedAt,
           billingVisible ? billingQuery.dataUpdatedAt : 0
         ),
         refetch: batchQuery.refetch,
-      }) as typeof batchQuery,
+      }) as unknown as UseQueryResult<IPage<ColocateJobInfo>, Error>,
     [
       batchQuery.data,
       batchQuery.dataUpdatedAt,
+      batchQuery.error,
+      batchQuery.isError,
+      batchQuery.isFetching,
       batchQuery.isLoading,
+      batchQuery.isPlaceholderData,
       batchQuery.refetch,
       billingVisible,
       billingQuery.data,
       billingQuery.dataUpdatedAt,
+      billingQuery.error,
+      billingQuery.isError,
+      billingQuery.isFetching,
       billingQuery.isLoading,
     ]
   )
@@ -215,6 +271,8 @@ const ColocateOverview = () => {
     try {
       // 并行发送所有异步请求
       await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['remote-list', 'jobs-aijob-batch'] }),
+        queryClient.invalidateQueries({ queryKey: ['remote-list-facets', 'jobs-aijob-batch'] }),
         queryClient.invalidateQueries({ queryKey: ['job'] }),
         queryClient.invalidateQueries({ queryKey: ['job', 'billing'] }),
         queryClient.invalidateQueries({ queryKey: ['aitask', 'quota'] }),
@@ -294,6 +352,7 @@ const ColocateOverview = () => {
       },
       {
         accessorKey: 'resources',
+        enableSorting: false,
         header: ({ column }) => (
           <DataTableColumnHeader column={column} title={getHeader('resources')} />
         ),
@@ -425,15 +484,16 @@ const ColocateOverview = () => {
 
   return (
     <>
-      <DataTable
+      <RemoteDataTable
         info={{
           title: t('jobs.customJobs.title'),
           description: t('jobs.customJobs.description'),
         }}
-        storageKey="portal_aijob_batch"
         query={mergedBatchQuery}
+        state={tableState}
         columns={batchColumns}
-        toolbarConfig={getToolbarConfig(t)}
+        getRowId={(row) => String(row.id)}
+        toolbarConfig={getRemoteToolbarConfig(t, facetsQuery.data)}
         multipleHandlers={[
           {
             title: (rows) => t('jobs.handlers.stopOrDeleteTitle', { count: rows.length }),
@@ -456,7 +516,7 @@ const ColocateOverview = () => {
         briefChildren={<JobResourceSummary />}
       >
         <ListedNewJobButton mode="custom" />
-      </DataTable>
+      </RemoteDataTable>
     </>
   )
 }
