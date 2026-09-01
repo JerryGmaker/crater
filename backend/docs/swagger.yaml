@@ -224,6 +224,15 @@ definitions:
     - JobTypeDeepSpeed
     - JobTypeOpenMPI
     - JobTypeCustom
+  github_com_raids-lab_crater_dao_model.QueueQuota:
+    properties:
+      capability:
+        $ref: '#/definitions/v1.ResourceList'
+      deserved:
+        $ref: '#/definitions/v1.ResourceList'
+      guaranteed:
+        $ref: '#/definitions/v1.ResourceList'
+    type: object
   github_com_raids-lab_crater_dao_model.ReviewStatus:
     enum:
     - 0
@@ -478,6 +487,19 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ListAllResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_handler.ListAllResp'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   github_com_raids-lab_crater_internal_resputil.Page-internal_handler_operations_OperationLogResp:
     properties:
       items:
@@ -650,6 +672,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_JobTemplateresp'
+      msg:
+        type: string
+    type: object
+  ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ListAllResp
+  : properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ListAllResp'
       msg:
         type: string
     type: object
@@ -1769,6 +1801,21 @@ definitions:
         type: integer
     required:
     - rdmaId
+    type: object
+  internal_handler.ListAllResp:
+    properties:
+      expiredAt:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      nickname:
+        type: string
+      quota:
+        $ref: '#/definitions/github_com_raids-lab_crater_dao_model.QueueQuota'
+      space:
+        type: string
     type: object
   internal_handler.LoginReq:
     properties:
@@ -3616,6 +3663,38 @@ paths:
       security:
       - Bearer: []
       summary: 获取指定账户
+      tags:
+      - Project
+  /v1/admin/accounts/page:
+    get:
+      description: 按统一分页协议获取账户列表，搜索、排序和分页在数据库中执行
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search account name or nickname
+        in: query
+        name: search
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ListAllResp'
+      security:
+      - Bearer: []
+      summary: 管理员获取账户分页
       tags:
       - Project
   /v1/admin/approvalorder:

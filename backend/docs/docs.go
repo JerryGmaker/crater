@@ -750,6 +750,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/admin/accounts/page": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "按统一分页协议获取账户列表，搜索、排序和分页在数据库中执行",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "管理员获取账户分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search account name or nickname",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ListAllResp"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/admin/accounts/{aid}": {
             "get": {
                 "security": [
@@ -11102,6 +11153,20 @@ const docTemplate = `{
                 "JobTypeCustom"
             ]
         },
+        "github_com_raids-lab_crater_dao_model.QueueQuota": {
+            "type": "object",
+            "properties": {
+                "capability": {
+                    "$ref": "#/definitions/v1.ResourceList"
+                },
+                "deserved": {
+                    "$ref": "#/definitions/v1.ResourceList"
+                },
+                "guaranteed": {
+                    "$ref": "#/definitions/v1.ResourceList"
+                }
+            }
+        },
         "github_com_raids-lab_crater_dao_model.ReviewStatus": {
             "type": "integer",
             "format": "int32",
@@ -11458,6 +11523,26 @@ const docTemplate = `{
                 }
             }
         },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ListAllResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.ListAllResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_operations_OperationLogResp": {
             "type": "object",
             "properties": {
@@ -11715,6 +11800,21 @@ const docTemplate = `{
                 },
                 "data": {
                     "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_JobTemplateresp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ListAllResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ListAllResp"
                 },
                 "msg": {
                     "type": "string"
@@ -13391,6 +13491,29 @@ const docTemplate = `{
             "properties": {
                 "rdmaId": {
                     "type": "integer"
+                }
+            }
+        },
+        "internal_handler.ListAllResp": {
+            "type": "object",
+            "properties": {
+                "expiredAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "quota": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.QueueQuota"
+                },
+                "space": {
+                    "type": "string"
                 }
             }
         },
