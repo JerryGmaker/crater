@@ -564,6 +564,19 @@ definitions:
       total:
         type: integer
     type: object
+  github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ModelDownloadResp:
+    properties:
+      items:
+        items:
+          $ref: '#/definitions/internal_handler.ModelDownloadResp'
+        type: array
+      page:
+        type: integer
+      page_size:
+        type: integer
+      total:
+        type: integer
+    type: object
   github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserResp:
     properties:
       items:
@@ -782,6 +795,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ListAllResp'
+      msg:
+        type: string
+    type: object
+  ? github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ModelDownloadResp
+  : properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ModelDownloadResp'
       msg:
         type: string
     type: object
@@ -1192,6 +1215,16 @@ definitions:
         type: integer
       data:
         $ref: '#/definitions/internal_handler_vcjob.JupyterTokenResp'
+      msg:
+        type: string
+    type: object
+  github_com_raids-lab_crater_internal_resputil.Response-map_string_int64:
+    properties:
+      code:
+        description: 依然保持 int (ErrorCode) 类型
+        type: integer
+      data:
+        $ref: '#/definitions/map_string_int64'
       msg:
         type: string
     type: object
@@ -3050,6 +3083,11 @@ definitions:
         type: string
       token:
         type: string
+    type: object
+  map_string_int64:
+    additionalProperties:
+      format: int64
+      type: integer
     type: object
   map_string_string:
     additionalProperties:
@@ -8098,6 +8136,64 @@ paths:
       summary: 更新作业模板
       tags:
       - jobtemplate
+  /v1/model-download/models/downloads/page:
+    get:
+      parameters:
+      - description: Page number
+        in: query
+        name: page
+        type: integer
+      - description: Page size, 1-200
+        in: query
+        name: page_size
+        type: integer
+      - description: Search download name
+        in: query
+        name: search
+        type: string
+      - description: Filter by model or dataset
+        in: query
+        name: category
+        type: string
+      - description: Filter by status; repeatable
+        in: query
+        name: status
+        type: string
+      - description: Sort fields
+        in: query
+        name: sort
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ModelDownloadResp'
+      security:
+      - Bearer: []
+      summary: 分页获取模型下载任务
+      tags:
+      - ModelDownload
+  /v1/model-download/models/downloads/summary:
+    get:
+      parameters:
+      - description: Filter by model or dataset
+        in: query
+        name: category
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_raids-lab_crater_internal_resputil.Response-map_string_int64'
+      security:
+      - Bearer: []
+      summary: 获取模型下载任务状态汇总
+      tags:
+      - ModelDownload
   /v1/models/download:
     post:
       consumes:
