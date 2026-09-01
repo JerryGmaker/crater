@@ -129,6 +129,7 @@ func (mgr *AccountMgr) registerUserMemberRoutes(g *gin.RouterGroup) {
 	g.POST(":aid/users/:uid/update", mgr.UserUpdateAccountMember) // Update user in account
 	g.DELETE(":aid/users/:uid", mgr.UserRemoveAccountMember)      // Remove user from account
 	g.GET(":aid/users/out", mgr.UserListUsersOutOfAccount)        // Get users out of account
+	g.GET(":aid/users/page", mgr.UserListAccountMembersPage)      // Get paginated users in account
 	g.GET(":aid/users", mgr.UserListAccountMembers)               // Get users in account
 	g.PUT(":aid/users/:uid", mgr.UserUpdateAccountMemberPartial)  // Batch update user-account relationship
 }
@@ -148,6 +149,7 @@ func (mgr *AccountMgr) RegisterAdmin(g *gin.RouterGroup) {
 	g.DELETE(":aid", mgr.DeleteAccount)
 	g.POST("add/:aid/:uid", mgr.AdminAddAccountMember)
 	g.POST("update/:aid/:uid", mgr.AdminUpdateAccountMember)
+	g.GET("userIn/:aid/page", mgr.AdminListAccountMembersPage)
 	g.GET("userIn/:aid", mgr.AdminListAccountMembers)
 	g.GET("userOutOf/:aid", mgr.AdminListUsersOutOfAccount)
 	g.DELETE(":aid/:uid", mgr.AdminRemoveAccountMember)
@@ -1345,7 +1347,13 @@ func (mgr *AccountMgr) AdminListAccountBillingMembers(c *gin.Context) {
 		return
 	}
 
-	resp, err := mgr.getBillingMembersInAccount(c, req.ID)
+	userIDs, err := bindBillingMemberUserIDs(c)
+	if err != nil {
+		resputil.HandleError(c, err)
+		return
+	}
+
+	resp, err := mgr.getBillingMembersInAccountByUserIDs(c, req.ID, userIDs)
 	if err != nil {
 		resputil.HandleError(c, err)
 		return
@@ -1891,6 +1899,14 @@ func (mgr *AccountMgr) getUsersInAccount(c *gin.Context, accountID uint) ([]User
 }
 
 func (mgr *AccountMgr) getBillingMembersInAccount(c *gin.Context, accountID uint) ([]AccountBillingMemberResp, error) {
+	return mgr.getBillingMembersInAccountByUserIDs(c, accountID, nil)
+}
+
+func (mgr *AccountMgr) getBillingMembersInAccountByUserIDs(
+	c *gin.Context,
+	accountID uint,
+	filterUserIDs []uint,
+) ([]AccountBillingMemberResp, error) {
 	if mgr.billingService == nil || !mgr.isBillingFeatureEnabled(c.Request.Context()) {
 		return []AccountBillingMemberResp{}, nil
 	}
@@ -1903,10 +1919,11 @@ func (mgr *AccountMgr) getBillingMembersInAccount(c *gin.Context, accountID uint
 	ua := query.UserAccount
 	u := query.User
 
-	userAccounts, err := ua.WithContext(c).
-		Where(ua.AccountID.Eq(accountID), ua.DeletedAt.IsNull()).
-		Order(ua.UserID).
-		Find()
+	userAccountQuery := ua.WithContext(c).Where(ua.AccountID.Eq(accountID), ua.DeletedAt.IsNull())
+	if len(filterUserIDs) > 0 {
+		userAccountQuery = userAccountQuery.Where(ua.UserID.In(filterUserIDs...))
+	}
+	userAccounts, err := userAccountQuery.Order(ua.UserID).Find()
 	if err != nil {
 		return nil, bizerr.Internal.DatabaseError.Wrap(err, "failed to query account billing members")
 	}
@@ -2497,7 +2514,13 @@ func (mgr *AccountMgr) UserListAccountBillingMembers(c *gin.Context) {
 		return
 	}
 
-	resp, err := mgr.getBillingMembersInAccount(c, req.ID)
+	userIDs, err := bindBillingMemberUserIDs(c)
+	if err != nil {
+		resputil.HandleError(c, err)
+		return
+	}
+
+	resp, err := mgr.getBillingMembersInAccountByUserIDs(c, req.ID, userIDs)
 	if err != nil {
 		resputil.HandleError(c, err)
 		return
