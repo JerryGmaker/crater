@@ -24,6 +24,7 @@ import {
   Globe2Icon,
   HardDriveIcon,
   HeartIcon,
+  LoaderCircleIcon,
   SearchIcon,
 } from 'lucide-react'
 import { Trash2Icon } from 'lucide-react'
@@ -72,6 +73,23 @@ import { IUserInfo } from '@/services/api/vcjob'
 import { formatFileSize } from '@/utils/file-size'
 import { atomUserInfo } from '@/utils/store'
 
+import {
+  DataListOwnerFilter,
+  DataListRemoteChange,
+  DataListRemoteQuery,
+  DataListSortDirection,
+  DataListSortField,
+  clampDataListRemotePage,
+  reduceDataListRemoteQuery,
+} from './data-list-remote'
+
+export type {
+  DataListOwnerFilter,
+  DataListRemoteQuery,
+  DataListSortDirection,
+  DataListSortField,
+} from './data-list-remote'
+
 export interface DataItem {
   id: number
   name: string
@@ -93,19 +111,12 @@ export interface DataItem {
   owner: IUserInfo
 }
 
-export type DataListOwnerFilter = 'all' | 'mine' | 'others'
-export type DataListSortDirection = 'ascending' | 'descending'
-
-export interface DataListRemoteQuery {
-  page: number
-  pageSize: number
-  search: string
-  owner: DataListOwnerFilter
-  sort: DataListSortDirection
-}
-
-interface DataListRemoteConfig {
+export interface DataListRemoteConfig {
+  query: DataListRemoteQuery
   total: number
+  isLoading?: boolean
+  availableTags?: string[]
+  availableSortFields?: DataListSortField[]
   onQueryChange: (query: DataListRemoteQuery) => void
 }
 
@@ -135,40 +146,70 @@ export default function DataList({
   remote?: DataListRemoteConfig
 }) {
   const { t } = useTranslation()
-  const [sort, setSort] = useState<DataListSortDirection>('descending')
-  const hasMountCount = useMemo(() => items.some((item) => item.mountCount !== undefined), [items])
-  const [sortField, setSortField] = useState<'createdAt' | 'mountCount'>(
-    hasMountCount ? 'mountCount' : 'createdAt'
+  const [localSortDirection, setLocalSortDirection] = useState<DataListSortDirection>('descending')
+  const isRemote = remote !== undefined
+  const localHasMountCount = useMemo(
+    () => items.some((item) => item.mountCount !== undefined),
+    [items]
+  )
+  const hasMountCount = isRemote
+    ? (remote.availableSortFields?.includes('mountCount') ?? false)
+    : localHasMountCount
+  const [localSortField, setLocalSortField] = useState<DataListSortField>(
+    localHasMountCount ? 'mountCount' : 'createdAt'
   )
   const [sortFieldManuallyChanged, setSortFieldManuallyChanged] = useState(false)
-  const [modelType, setModelType] = useState('所有标签')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [ownerFilter, setOwnerFilter] = useState<DataListOwnerFilter>('all')
-  const [pageIndex, setPageIndex] = useState(0)
-  const [pageSize, setPageSize] = useState(10)
+  const [localModelType, setLocalModelType] = useState('所有标签')
+  const [localSearchTerm, setLocalSearchTerm] = useState('')
+  const [localOwnerFilter, setLocalOwnerFilter] = useState<DataListOwnerFilter>('all')
+  const [localPageIndex, setLocalPageIndex] = useState(0)
+  const [localPageSize, setLocalPageSize] = useState(10)
   const user = useAtomValue(atomUserInfo)
-  const isRemote = remote !== undefined
+  const remoteQuery = remote?.query
   const onRemoteQueryChange = remote?.onQueryChange
+  const sortDirection = remoteQuery?.sortDirection ?? localSortDirection
+  const sortField = remoteQuery?.sortField ?? localSortField
+  const modelType = remoteQuery?.tag ?? localModelType
+  const searchTerm = remoteQuery?.search ?? localSearchTerm
+  const ownerFilter = remoteQuery?.owner ?? localOwnerFilter
+  const pageIndex = remoteQuery ? remoteQuery.page - 1 : localPageIndex
+  const pageSize = remoteQuery?.pageSize ?? localPageSize
+
+  const dispatchRemoteQuery = (change: DataListRemoteChange) => {
+    if (remoteQuery && onRemoteQueryChange) {
+      onRemoteQueryChange(reduceDataListRemoteQuery(remoteQuery, change))
+    }
+  }
 
   useEffect(() => {
-    const nextDefaultSortField = hasMountCount ? 'mountCount' : 'createdAt'
-
-    if (!sortFieldManuallyChanged && sortField !== nextDefaultSortField) {
-      setSortField(nextDefaultSortField)
+    if (isRemote) {
+      return
     }
 
-    if (!hasMountCount && sortField === 'mountCount') {
-      setSortField('createdAt')
+    const nextDefaultSortField = localHasMountCount ? 'mountCount' : 'createdAt'
+
+    if (!sortFieldManuallyChanged && localSortField !== nextDefaultSortField) {
+      setLocalSortField(nextDefaultSortField)
     }
-  }, [hasMountCount, sortField, sortFieldManuallyChanged])
+
+    if (!localHasMountCount && localSortField === 'mountCount') {
+      setLocalSortField('createdAt')
+    }
+  }, [isRemote, localHasMountCount, localSortField, sortFieldManuallyChanged])
 
   const tags = useMemo(() => {
+    if (isRemote) {
+      return remote.availableTags ?? []
+    }
+
     const tags = new Set<string>()
     items.forEach((model) => {
       model.tag.forEach((tag) => tags.add(tag))
     })
     return Array.from(tags)
-  }, [items])
+  }, [isRemote, items, remote?.availableTags])
+
+  const showTagFilter = isRemote ? remote.availableTags !== undefined : title !== '作业模板'
 
   const toSortableNumber = (value: unknown): number => {
     if (typeof value === 'number') {
@@ -186,7 +227,7 @@ export default function DataList({
 
     return [...items]
       .sort((a, b) => {
-        const direction = sort === 'descending' ? -1 : 1
+        const direction = sortDirection === 'descending' ? -1 : 1
 
         if (sortField === 'mountCount') {
           const aCount = toSortableNumber(a.mountCount)
@@ -230,17 +271,7 @@ export default function DataList({
             ? user?.name === item.owner.username
             : user?.name !== item.owner.username
       )
-  }, [isRemote, items, modelType, ownerFilter, searchTerm, sort, sortField, user?.name])
-
-  useEffect(() => {
-    onRemoteQueryChange?.({
-      page: pageIndex + 1,
-      pageSize,
-      search: searchTerm,
-      owner: ownerFilter,
-      sort,
-    })
-  }, [onRemoteQueryChange, ownerFilter, pageIndex, pageSize, searchTerm, sort])
+  }, [isRemote, items, modelType, ownerFilter, searchTerm, sortDirection, sortField, user?.name])
 
   const totalItems = remote?.total ?? filteredItems.length
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize))
@@ -256,12 +287,16 @@ export default function DataList({
   useEffect(() => {
     const lastPageIndex = totalPages - 1
     if (pageIndex > lastPageIndex) {
-      setPageIndex(lastPageIndex)
+      if (remoteQuery && onRemoteQueryChange) {
+        onRemoteQueryChange(clampDataListRemotePage(remoteQuery, totalItems))
+      } else {
+        setLocalPageIndex(lastPageIndex)
+      }
     }
-  }, [pageIndex, totalPages])
+  }, [onRemoteQueryChange, pageIndex, remoteQuery, totalItems, totalPages])
 
   return (
-    <div>
+    <div aria-busy={remote?.isLoading}>
       <PageTitle
         title={title}
         description={
@@ -279,17 +314,26 @@ export default function DataList({
               className="h-9 w-full min-w-0 pl-8 sm:w-40 lg:w-[250px]"
               value={searchTerm}
               onChange={(e) => {
-                setSearchTerm(e.target.value)
-                setPageIndex(0)
+                const search = e.target.value
+                if (isRemote) {
+                  dispatchRemoteQuery({ type: 'search', search })
+                } else {
+                  setLocalSearchTerm(search)
+                  setLocalPageIndex(0)
+                }
               }}
             />
           </div>
-          {title !== '作业模板' && (
+          {showTagFilter && (
             <Select
               value={modelType}
               onValueChange={(value) => {
-                setModelType(value)
-                setPageIndex(0)
+                if (isRemote) {
+                  dispatchRemoteQuery({ type: 'tag', tag: value })
+                } else {
+                  setLocalModelType(value)
+                  setLocalPageIndex(0)
+                }
               }}
             >
               <SelectTrigger className="min-w-36">
@@ -311,8 +355,13 @@ export default function DataList({
             <Select
               value={ownerFilter}
               onValueChange={(value) => {
-                setOwnerFilter(value as DataListOwnerFilter)
-                setPageIndex(0)
+                const owner = value as DataListOwnerFilter
+                if (isRemote) {
+                  dispatchRemoteQuery({ type: 'owner', owner })
+                } else {
+                  setLocalOwnerFilter(owner)
+                  setLocalPageIndex(0)
+                }
               }}
             >
               <SelectTrigger className="min-w-28">
@@ -330,9 +379,14 @@ export default function DataList({
           <Select
             value={sortField}
             onValueChange={(value) => {
-              setSortFieldManuallyChanged(true)
-              setSortField(value as 'createdAt' | 'mountCount')
-              setPageIndex(0)
+              const nextSortField = value as DataListSortField
+              if (isRemote) {
+                dispatchRemoteQuery({ type: 'sortField', sortField: nextSortField })
+              } else {
+                setSortFieldManuallyChanged(true)
+                setLocalSortField(nextSortField)
+                setLocalPageIndex(0)
+              }
             }}
           >
             <SelectTrigger className="min-w-28">
@@ -346,15 +400,20 @@ export default function DataList({
             </SelectContent>
           </Select>
           <Select
-            value={sort}
+            value={sortDirection}
             onValueChange={(value) => {
-              setSort(value as DataListSortDirection)
-              setPageIndex(0)
+              const nextSortDirection = value as DataListSortDirection
+              if (isRemote) {
+                dispatchRemoteQuery({ type: 'sortDirection', sortDirection: nextSortDirection })
+              } else {
+                setLocalSortDirection(nextSortDirection)
+                setLocalPageIndex(0)
+              }
             }}
           >
             <SelectTrigger className="w-16">
               <SelectValue>
-                {sort === 'ascending' ? (
+                {sortDirection === 'ascending' ? (
                   <ArrowDownAZIcon size={16} />
                 ) : (
                   <ArrowDownZAIcon size={16} />
@@ -379,7 +438,12 @@ export default function DataList({
         </div>
       </div>
       <Separator />
-      {filteredItems.length === 0 ? (
+      {remote?.isLoading && filteredItems.length === 0 ? (
+        <div className="text-muted-foreground flex min-h-48 items-center justify-center gap-2 text-sm">
+          <LoaderCircleIcon className="size-4 animate-spin" />
+          <span>正在加载...</span>
+        </div>
+      ) : filteredItems.length === 0 ? (
         <Nothing />
       ) : (
         <ul className="faded-bottom no-scrollbar grid min-w-0 gap-3 overflow-auto pt-4 pb-16 md:grid-cols-2">
@@ -538,8 +602,13 @@ export default function DataList({
             <Select
               value={`${pageSize}`}
               onValueChange={(value) => {
-                setPageSize(Number(value))
-                setPageIndex(0)
+                const nextPageSize = Number(value)
+                if (isRemote) {
+                  dispatchRemoteQuery({ type: 'pageSize', pageSize: nextPageSize })
+                } else {
+                  setLocalPageSize(nextPageSize)
+                  setLocalPageIndex(0)
+                }
               }}
             >
               <SelectTrigger className="bg-background h-9 w-[100px] pr-2 pl-3 text-xs">
@@ -558,7 +627,13 @@ export default function DataList({
           <PaginationNav
             currentPage={currentPage}
             totalPages={totalPages}
-            onPageChange={(page) => setPageIndex(page - 1)}
+            onPageChange={(page) => {
+              if (isRemote) {
+                dispatchRemoteQuery({ type: 'page', page })
+              } else {
+                setLocalPageIndex(page - 1)
+              }
+            }}
           />
         </div>
       )}
