@@ -1,0 +1,74 @@
+# Copyright 2025 RAIDS Lab
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Pagination Checks
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - "frontend/src/**"
+      - "hack/check-pagination*"
+      - "docs/zh-CN/PAGINATION.md"
+      - ".github/workflows/pagination-check.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "frontend/src/**"
+      - "hack/check-pagination*"
+      - "docs/zh-CN/PAGINATION.md"
+      - ".github/workflows/pagination-check.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  pagination-checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Enable pnpm
+        run: corepack enable
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check Swagger pagination paths and frontend guards
+        working-directory: .
+        run: node hack/check-pagination-static.mjs
+
+      - name: Run offline pagination acceptance test
+        working-directory: .
+        run: node --test hack/check-pagination.test.mjs
+
+      - name: Run DataList remote-mode tests
+        run: pnpm test:data-list
+
+      - name: Type-check frontend
+        run: pnpm exec tsc --noEmit
+
+      - name: Build frontend
+        run: pnpm build

@@ -195,7 +195,52 @@ pnpm build
 
 后端业务包至少应完成编译和对应查询测试。部分 handler 包在测试启动时会加载开发配置和数据库；环境不可用时，应明确记录“包编译通过、数据库集成测试未执行”，不能把编译结果描述成真实数据验收通过。
 
-## 8. 新列表接入步骤
+## 8.1 五类代表接口自动验收
+
+仓库提供只读验收脚本 `hack/check-pagination.mjs`，用于检查 JobTemplate、VCJob、ApprovalOrder、GPU Analysis 和 EMIAS。每类接口会依次发送：
+
+- 无搜索条件的基线请求和带 `search`、`sort` 以及业务筛选参数的请求；
+- 第 1 页、第 2 页和改变 `page_size` 后的请求；
+- 一个足够大的越界页请求；
+- 对已提供 facets 接口的业务追加 facets 请求。
+
+脚本检查 HTTP 状态、分页响应中的 `items/total/page/page_size`、facets 响应结构以及越界页是否返回空数据。它还会比较搜索前后的 `total`、不同页大小下的 `total`，检查第 1 页和第 2 页是否出现重复标识，并核对 VCJob/EMIAS 选中状态的 facet 数量与列表 `total`。所有请求均为 GET，不创建、修改或删除实验室数据。搜索、筛选先于分页、稳定排序以及权限范围的深层语义由后端测试和真实数据 Network 验收共同确认，脚本不会把“接口能访问”冒充成完整业务正确性。
+
+Windows PowerShell 示例：
+
+```powershell
+$env:CRATER_API_BASE_URL = "https://crater.act.buaa.edu.cn/api/v1"
+$env:CRATER_USER_AUTH_TOKEN = "<普通用户 access token>"
+$env:CRATER_ADMIN_AUTH_TOKEN = "<管理员 access token>"
+node hack/check-pagination.mjs
+```
+
+本地后端示例：
+
+```shell
+CRATER_AUTH_TOKEN=... node hack/check-pagination.mjs \
+  --base-url http://localhost:8088/api/v1
+```
+
+结果含义：`PASSED` 表示该业务的自动检查完成；`BLOCKED` 表示认证、权限、VPN、数据库或服务不可达，不能当作通过；`FAILED` 表示接口返回异常状态或响应结构不符合协议。默认情况下只要出现 `BLOCKED` 或 `FAILED` 就返回非零退出码；排查网络或权限时可以临时使用 `--allow-blocked`，但仍应在汇报中单独记录阻断原因。
+
+其中，JobTemplate、VCJob、ApprovalOrder 和 EMIAS 使用普通用户 Token；GPU Analysis 使用管理员 Token。如果只提供 `--token`，脚本会把它作为两类检查的回退 Token，适合单 Token 的开发环境。生产或实验室验收应分别设置 `CRATER_USER_AUTH_TOKEN` 和 `CRATER_ADMIN_AUTH_TOKEN`，避免把权限不足误判为接口故障。
+
+脚本自身的离线测试：
+
+```shell
+node --test hack/check-pagination.test.mjs
+```
+
+Swagger 路由和前端远程分页防回归检查：
+
+```shell
+node hack/check-pagination-static.mjs
+```
+
+GitHub Actions 工作流 `/.github/workflows/pagination-check.yml` 会在相关后端、前端、验收脚本或规范发生变更时执行以上检查，并继续执行 DataList 测试、TypeScript 检查和前端构建。工作流不连接实验室环境，因此不会把真实数据验收混入 CI；真实 Network 验收仍需在 VPN、服务端和权限可用时单独执行。
+
+## 9. 新列表接入步骤
 
 1. 判断数据源和增长方式，确认它属于数据库主列表。
 2. 定义权限范围、搜索字段、业务筛选和排序白名单。
