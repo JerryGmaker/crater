@@ -1,6 +1,6 @@
 ---
 name: crater-cli-read
-version: 1.3.0
+version: 1.3.1
 description: "Crater CLI 用户视图读取域：指导 AI Agent 通过 crater node、job、image、account、resource、dataset、model-download、pod 等用户可见命令查看平台只读信息。管理员视图请使用 crater-cli-admin-read。"
 metadata:
   requires:
@@ -42,7 +42,7 @@ crater node pods gpu-node-01 --namespace team-workloads --type batch.volcano.sh/
 crater node pods gpu-node-01 --all-namespaces --all-pages --json
 crater node gpu gpu-node-01 --json
 crater job ls --search experiment --page-size 15 --json
-crater job ls --all --days 7 --status Running --json
+crater job ls --all --days 7 --search experiment --status Running,Pending --type pytorch --schedule normal --all-pages --json
 crater job ls --interactive --json
 crater job get my-job-name --json
 crater job pods my-job-name --status Running --page-size 15 --json
