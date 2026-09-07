@@ -551,9 +551,9 @@ export function AccountMemberTable({
   )
 
   const toolbarConfig: DataTableToolbarConfig = {
-    filterInput: {
+    globalSearch: {
+      enabled: true,
       placeholder: t('accountDetail.table.filter.searchUser'),
-      key: 'name',
     },
     filterOptions: [
       {
