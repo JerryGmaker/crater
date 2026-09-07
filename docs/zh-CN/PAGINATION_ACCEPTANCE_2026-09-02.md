@@ -49,6 +49,7 @@
 | EMIAS | `404` | `/api/v1/aijobs/page` 在当前小集群未注册；服务配置中 EMIAS scheduler plugin 未启用，代码会按配置跳过该路由 | 阻断，不能记为失败 |
 
 | 镜像构建 | `200 OK` | 用户端 `/portal/env/registry` 在当前权限范围返回 `total=0`，状态筛选控件可用；管理端 `/admin/env/registry` 返回 `total=162`，第 1、2 页各 10 条且无重复，页大小 20、搜索 `gnn` 返回 4 条、无匹配搜索返回 0 条、创建时间升序生效 | 通过；状态筛选修正后重新验收 |
+| 集群资源 | `200 OK` | `/admin/cluster/resources` 显示 `共 33 条`；第 1、2 页各 10 条且无重复；页大小 20；搜索 `cpu` 返回 3 条；无匹配搜索返回 0 条；类型筛选 `vGPU` 返回 3 条 | 通过；前端搜索已统一为 `search` |
 
 ### 4.1 JobTemplate 代表性 Network 证据
 
@@ -201,6 +202,21 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
 
 页面刷新期间曾出现一次 `fetch kaniko by name failed, err record not found` 提示。该提示来自列表外的镜像详情预取/按名称查询，与分页列表请求分离；本次分页验收未将它记为分页失败，后续可单独排查详情接口的历史记录兼容问题。
 
+### 4.12 集群资源代表性验收
+
+已在管理员会话下完成只读验收：
+
+```text
+初始列表：共 33 条，10 条/页，共 4 页
+翻页：第 1、2 页各 10 条，资源记录无重复
+页大小：切换为 20 条/页后仍显示共 33 条
+搜索 cpu：共 3 条，结果为 cpu、batch-cpu、mid-cpu
+无匹配搜索：共 0 条，页面显示暂无数据
+类型筛选 vGPU：共 3 条，页面每条记录类型均为 vGPU
+```
+
+本次验收确认资源页的名称输入已经通过公共 `search` 参数触发后端搜索，类型筛选通过重复 `type` 参数触发后端筛选；页面没有对当前页数据再次执行本地搜索或分页。
+
 ## 5. 阻断项与边界
 
 EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用 EMIAS，因此真实页面无法用当前小集群完成验收。需要在 EMIAS enabled 的环境重新执行：
@@ -220,8 +236,9 @@ EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用
 | 前端构建 | `pnpm build` | 通过，只有已有构建警告 |
 | EMIAS handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/aijob` | 通过 |
 | 分页离线验收脚本 | `node --test hack/check-pagination.test.mjs` | 通过 |
-| Swagger/前端静态检查 | `node hack/check-pagination-static.mjs` | 通过，检查到 34 个 Swagger 分页路径和 16 个代表页面守卫 |
+| Swagger/前端静态检查 | `node hack/check-pagination-static.mjs` | 通过，检查到 35 个 Swagger 分页路径和 17 个代表页面守卫 |
 | 镜像构建 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1` | 通过 |
+| 集群资源 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler -run 'Test(ListResourcePage|BindResource|ResourcePage)' -count=1` | 通过 |
 
 自动检查证明代码结构、协议形状和离线逻辑满足预期；真实 Network 验收则证明当前环境中页面确实发出了分页请求，两者不互相替代。
 

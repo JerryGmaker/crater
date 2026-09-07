@@ -379,14 +379,15 @@ function Resources() {
 
   const toolbarConfig: DataTableToolbarConfig = useMemo(() => {
     return {
-      filterInput: {
+      globalSearch: {
+        enabled: true,
         placeholder: t('resources.filter.placeholder'),
-        key: 'name',
       },
       filterOptions: [
         {
           key: 'type',
           title: t('resources.columns.type'),
+          remoteFacets: true,
           option: [
             { value: 'gpu', label: t('resources.type.gpu') },
             { value: 'rdma', label: t('resources.type.rdma') },

@@ -7,6 +7,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"k8s.io/klog/v2"
 
 	"github.com/raids-lab/crater/dao/model"
@@ -148,13 +149,17 @@ func bindResourcePriceIDs(c *gin.Context) ([]uint, error) {
 //	@Success	200					{object}	resputil.Response[resputil.Page[ResourceResp]]
 //	@Router		/v1/resources/page [get]
 func (mgr *ResourceMgr) ListResourcePage(c *gin.Context) {
+	mgr.listResourcePageWithDB(c, query.GetDB())
+}
+
+func (mgr *ResourceMgr) listResourcePageWithDB(c *gin.Context, baseDB *gorm.DB) {
 	request, resourceTypes, err := bindResourcePageQuery(c)
 	if err != nil {
 		resputil.HandleError(c, err)
 		return
 	}
 
-	db := query.GetDB().WithContext(c).Model(&model.Resource{})
+	db := baseDB.WithContext(c).Model(&model.Resource{})
 	if request.WithVendorDomain {
 		db = db.Where("type = ?", model.ResourceTypeGPU)
 	}
