@@ -227,6 +227,12 @@ EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用
 
 这项阻断不影响已完成的离线 handler 测试，也不应被描述为“EMIAS 真实数据验收通过”。
 
+2026-09-08 复核结果：当前后端启动日志为 `Scheduler Plugins: None enabled`；只读请求
+`GET /api/v1/aijobs/page?page=1&page_size=10` 和
+`GET /api/v1/aijobs/page/facets?days=7` 均返回 `404 Not Found`，确认是路由未注册，
+不是分页响应字段或查询逻辑错误。前端 `/portal/jobs/custom` 因当前调度器为 Volcano，
+显示普通作业列表，不能作为 EMIAS 真实验收证据。
+
 ## 6. 自动检查结果
 
 | 检查 | 命令 | 结果 |
