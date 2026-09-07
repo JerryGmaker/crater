@@ -205,12 +205,13 @@ func (mgr *ImagePackMgr) deleteKanikoByID(c *gin.Context, isAdminMode bool, kani
 // GetKanikoByImagePackName godoc
 //
 //	@Summary		获取imagepack的详细信息
-//	@Description	获取imagepackname，搜索到imagepack
+//	@Description	按名称获取镜像构建详情；也兼容通过 id 查询，列表页优先使用 id
 //	@Tags			ImagePack
 //	@Accept			json
 //	@Produce		json
 //	@Security		Bearer
-//	@Param			name	query	string	true	"获取ImagePack的name"
+//	@Param			name	query	string	false	"兼容：获取ImagePack的name"
+//	@Param			id	query	uint	false	"镜像构建记录 ID"
 //	@Router			/v1/images/getbyname [GET]
 func (mgr *ImagePackMgr) GetKanikoByImagePackName(c *gin.Context) {
 	var req GetKanikoRequest
@@ -219,28 +220,87 @@ func (mgr *ImagePackMgr) GetKanikoByImagePackName(c *gin.Context) {
 		resputil.BadRequestError(c, msg)
 		return
 	}
-	kaniko, err := mgr.findCurrentUserKaniko(c, req.ImagePackName, 0)
+	if req.ImagePackName == "" && req.ID == 0 {
+		resputil.HandleError(c, bizerr.BadRequest.MissingParameter.New("either name or id is required"))
+		return
+	}
+	kaniko, err := mgr.findCurrentUserKaniko(c, req.ImagePackName, req.ID)
 	if err != nil {
-		msg := fmt.Sprintf("fetch kaniko by name failed, err %v", err)
-		resputil.BadRequestError(c, msg)
+		resputil.HandleError(c, bizerr.NotFound.DataBaseNotFound.Wrap(err, "image build not found"))
 		return
 	}
 
+	resputil.Success(c, mgr.buildKanikoDetailResponse(c, kaniko))
+}
+
+// GetKanikoByID returns the current user's image build detail by its stable database ID.
+//
+//	@Summary		获取当前用户的镜像构建详情
+//	@Description	通过镜像构建记录 ID 获取详情；按名称查询保留在 getbyname 作为兼容接口
+//	@Tags			ImagePack
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			id	query	uint	true	"镜像构建记录 ID"
+//	@Router			/v1/images/getbyid [GET]
+func (mgr *ImagePackMgr) GetKanikoByID(c *gin.Context) {
+	var req GetKanikoPodRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		resputil.HandleError(c, bizerr.BadRequest.ParameterError.Wrap(err, "invalid image build id"))
+		return
+	}
+	kaniko, err := mgr.findCurrentUserKaniko(c, "", req.ID)
+	if err != nil {
+		resputil.HandleError(c, bizerr.NotFound.DataBaseNotFound.Wrap(err, "image build not found"))
+		return
+	}
+	resputil.Success(c, mgr.buildKanikoDetailResponse(c, kaniko))
+}
+
+// AdminGetKanikoByID returns an image build detail by its stable database ID.
+//
+//	@Summary		管理员获取镜像构建详情
+//	@Tags			ImagePack
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			id	query	uint	true	"镜像构建记录 ID"
+//	@Router			/v1/admin/images/getbyid [GET]
+func (mgr *ImagePackMgr) AdminGetKanikoByID(c *gin.Context) {
+	var req GetKanikoPodRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		resputil.HandleError(c, bizerr.BadRequest.ParameterError.Wrap(err, "invalid image build id"))
+		return
+	}
+	kaniko, err := query.Kaniko.WithContext(c).Where(query.Kaniko.ID.Eq(req.ID)).First()
+	if err != nil {
+		resputil.HandleError(c, bizerr.NotFound.DataBaseNotFound.Wrap(err, "image build not found"))
+		return
+	}
+	resputil.Success(c, mgr.buildKanikoDetailResponse(c, kaniko))
+}
+
+func (mgr *ImagePackMgr) buildKanikoDetailResponse(c *gin.Context, kaniko *model.Kaniko) GetKanikoResponse {
 	podName, podNameSpace, nodeName := mgr.getPodName(c, kaniko.ID)
-	getKanikoResponse := GetKanikoResponse{
+	description := ""
+	if kaniko.Description != nil {
+		description = *kaniko.Description
+	}
+	dockerfile := ""
+	if kaniko.Dockerfile != nil {
+		dockerfile = *kaniko.Dockerfile
+	}
+	return GetKanikoResponse{
 		ID:            kaniko.ID,
 		ImageLink:     kaniko.ImageLink,
 		Status:        kaniko.Status,
 		BuildSource:   kaniko.BuildSource,
 		CreatedAt:     kaniko.CreatedAt,
 		ImagePackName: kaniko.ImagePackName,
-		Description:   *kaniko.Description,
-		Dockerfile:    *kaniko.Dockerfile,
+		Description:   description,
+		Dockerfile:    dockerfile,
 		PodName:       podName,
 		PodNameSpace:  podNameSpace,
 		NodeName:      nodeName,
 	}
-	resputil.Success(c, getKanikoResponse)
 }
 
 // GetKanikoTemplateByImagePackName godoc

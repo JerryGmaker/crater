@@ -19,7 +19,7 @@ import {
   buildRemoteSearchParams,
 } from '@/components/query-table/remote-state'
 
-import { apiV1Delete, apiV1Get, apiV1Post } from '@/services/client'
+import { apiClient, apiV1Delete, apiV1Get, apiV1Post } from '@/services/client'
 import { IPage, IResponse } from '@/services/types'
 
 import { IUserAttributes } from './admin/user'
@@ -430,7 +430,16 @@ export const apiUserRemoveKanikoList = (idList: number[]) =>
   })
 
 export const apiUserGetKaniko = (name: string) =>
-  apiV1Get<IResponse<KanikoInfoResponse>>(`images/getbyname?name=${name}`)
+  apiClient
+    .get(`v1/images/getbyname?name=${encodeURIComponent(name)}`)
+    .json<IResponse<KanikoInfoResponse>>()
+
+export const apiUserGetKanikoByID = (id: number) =>
+  apiClient
+    .get('v1/images/getbyid', {
+      searchParams: { id: String(id) },
+    })
+    .json<IResponse<KanikoInfoResponse>>()
 
 export const apiUserListImage = () => apiV1Get<IResponse<ListImageResponse>>('images/image')
 

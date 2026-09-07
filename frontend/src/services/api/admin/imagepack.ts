@@ -18,7 +18,7 @@ import {
   buildRemoteSearchParams,
 } from '@/components/query-table/remote-state'
 
-import { apiV1Get, apiV1Post } from '@/services/client'
+import { apiClient, apiV1Get, apiV1Post } from '@/services/client'
 import { IPage, IResponse } from '@/services/types'
 
 import {
@@ -55,6 +55,13 @@ export const apiAdminListKanikoPage = (params: RemoteTableParams, signal?: Abort
     searchParams: buildRemoteSearchParams(params),
     signal,
   })
+
+export const apiAdminGetKanikoByID = (id: number) =>
+  apiClient
+    .get('v1/admin/images/getbyid', {
+      searchParams: { id: String(id) },
+    })
+    .json<IResponse<KanikoInfoResponse>>()
 
 export const apiAdminDeleteImageList = (idList: number[]) =>
   apiV1Post<IResponse<string>>('admin/images/deleteimage', {
