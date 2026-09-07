@@ -261,6 +261,15 @@ EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用
 
 补充说明：直接运行整个 `./internal/handler` 包时，包级初始化会在非 debug 模式固定读取 `/etc/config/config.yaml`，本地环境不存在该文件而提前退出；这不是分页或图片详情测试失败。可执行的图片 handler 测试和资源分页定向测试均使用 debug 配置并已通过。
 
+全仓 `go test ./... -count=1` 已尝试，未作为本轮通过项记录：
+
+- `internal/handler` 因包级初始化固定读取本地不存在的 `/etc/config/config.yaml` 退出；
+- `internal/handler/operations` 的已有测试在构造带 `&sort` 的 URL 时发生 malformed HTTP version panic；
+- `pkg/reconciler` 的已有测试尝试连接示例数据库 `192.168.0.1:6432` 并超时；
+- `pkg/util/queue` 的已有测试出现堆大小断言和类型转换失败。
+
+这些失败没有覆盖到本轮修改的图片详情、资源分页、EMIAS 分页和 JobTemplate 服务测试；相关定向测试均通过。
+
 自动检查证明代码结构、协议形状和离线逻辑满足预期；真实 Network 验收则证明当前环境中页面确实发出了分页请求，两者不互相替代。
 
 ## 7. 后续动作
