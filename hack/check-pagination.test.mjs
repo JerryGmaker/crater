@@ -10,6 +10,8 @@ const routes = new Set([
   "/api/v1/vcjobs/all/facets",
   "/api/v1/approvalorder/page",
   "/api/v1/admin/gpu-analysis/page",
+  "/api/v1/images/kaniko/page",
+  "/api/v1/admin/images/kaniko/page",
   "/api/v1/aijobs/page",
   "/api/v1/aijobs/page/facets",
 ]);
@@ -64,7 +66,7 @@ after(async () => {
 });
 
 describe("pagination acceptance script", () => {
-  it("checks all five representative APIs with read-only query requests", async () => {
+  it("checks all seven representative APIs with read-only query requests", async () => {
     const result = await runAcceptance({
       baseURL,
       userToken: "user-token",
@@ -75,10 +77,10 @@ describe("pagination acceptance script", () => {
       log: () => {},
     });
 
-    assert.equal(result.passed, 5);
+    assert.equal(result.passed, 7);
     assert.equal(result.blocked, 0);
     assert.equal(result.failed, 0);
-    assert.equal(requests.length, 27);
+    assert.equal(requests.length, 37);
     assert.ok(
       requests.every(({ url, authorization }) =>
         url.pathname.startsWith("/api/v1/admin/")

@@ -50,6 +50,12 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
 
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "backend/go.mod"
+          cache-dependency-path: backend/go.sum
+
       - name: Enable pnpm
         run: corepack enable
 
@@ -63,6 +69,13 @@ jobs:
       - name: Run offline pagination acceptance test
         working-directory: .
         run: node --test hack/check-pagination.test.mjs
+
+      - name: Run image-build pagination tests
+        working-directory: backend
+        env:
+          CRATER_DEBUG_CONFIG_PATH: ./etc/example-config.yaml
+          CRATER_SKIP_OPERATION_LOG_MIGRATION: "1"
+        run: go test ./internal/handler/image
 
       - name: Run DataList remote-mode tests
         run: pnpm test:data-list

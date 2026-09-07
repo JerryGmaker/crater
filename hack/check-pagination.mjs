@@ -38,6 +38,17 @@ export function buildChecks({
       admin: true,
     },
     {
+      name: "Image Builds",
+      listPath: "images/kaniko/page",
+      params: { search, sort: "-createdAt" },
+    },
+    {
+      name: "Admin Image Builds",
+      listPath: "admin/images/kaniko/page",
+      params: { search, sort: "-createdAt" },
+      admin: true,
+    },
+    {
       name: "EMIAS",
       listPath: "aijobs/page",
       facetsPath: "aijobs/page/facets",
@@ -486,7 +497,7 @@ function parseArgs(argv) {
 function printHelp() {
   console.log(`Usage: node hack/check-pagination.mjs [options]
 
-Read-only checks for JobTemplate, VCJob, ApprovalOrder, GPU Analysis, and EMIAS.
+Read-only checks for JobTemplate, VCJob, ApprovalOrder, GPU Analysis, image builds, and EMIAS.
 
 Options:
   --base-url URL       API root, default: $CRATER_API_BASE_URL or ${DEFAULT_BASE_URL}
