@@ -217,6 +217,18 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
 
 本次验收确认资源页的名称输入已经通过公共 `search` 参数触发后端搜索，类型筛选通过重复 `type` 参数触发后端筛选；页面没有对当前页数据再次执行本地搜索或分页。
 
+### 4.13 镜像详情历史记录兼容修正
+
+分页列表之外，单独处理了刷新镜像详情时偶发的 `record not found`：
+
+- 列表进入详情时携带稳定的镜像构建记录 `id`，用户端和管理端分别按 ID 查询；
+- 原 `/v1/images/getbyname` 保留用于历史链接兼容，同时允许兼容传入 `id`；
+- 详情查询找不到记录时返回明确的 Not Found 错误，前端显示“页面未找到”，不再把数据库错误直接作为通用请求失败弹窗；
+- 描述和 Dockerfile 为空时按空字符串返回，避免详情响应因空指针失败；
+- 新增 `/v1/images/getbyid` 与 `/v1/admin/images/getbyid`，并已重新生成 Swagger。
+
+该修正尚未使用实验室写操作；详情接口本身的真实数据验收仍应在 VPN 和有效登录会话下补做。分页列表的真实验收与此详情问题分开记录。
+
 ## 5. 阻断项与边界
 
 EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用 EMIAS，因此真实页面无法用当前小集群完成验收。需要在 EMIAS enabled 的环境重新执行：
@@ -245,6 +257,9 @@ EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用
 | Swagger/前端静态检查 | `node hack/check-pagination-static.mjs` | 通过，检查到 35 个 Swagger 分页路径和 17 个代表页面守卫 |
 | 镜像构建 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1` | 通过 |
 | 集群资源 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler -run 'Test(ListResourcePage|BindResource|ResourcePage)' -count=1` | 通过 |
+| 图片详情参数/列表 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1` | 通过 |
+
+补充说明：直接运行整个 `./internal/handler` 包时，包级初始化会在非 debug 模式固定读取 `/etc/config/config.yaml`，本地环境不存在该文件而提前退出；这不是分页或图片详情测试失败。可执行的图片 handler 测试和资源分页定向测试均使用 debug 配置并已通过。
 
 自动检查证明代码结构、协议形状和离线逻辑满足预期；真实 Network 验收则证明当前环境中页面确实发出了分页请求，两者不互相替代。
 

@@ -10,6 +10,26 @@
 - `2844090 test: extend pagination static guards`
 - `4899634 fix: align resource pagination search`
 
+本轮新增的镜像详情兼容修正尚未提交，待审阅的文件范围为：
+
+- `backend/internal/handler/image/buildmgr.go`
+- `backend/internal/handler/image/interface.go`
+- `backend/internal/handler/image/types.go`
+- `backend/internal/handler/image/buildmgr_test.go`
+- `frontend/src/services/api/imagepack.ts`
+- `frontend/src/services/api/admin/imagepack.ts`
+- `frontend/src/services/query/image.ts`
+- `frontend/src/components/layout/detail-page.tsx`
+- `frontend/src/components/image/registry/index.tsx`
+- `frontend/src/components/image/registry/registry-detail.tsx`
+- `frontend/src/routes/portal/env/registry/$name.tsx`
+- `frontend/src/routes/admin/env/registry/$name.tsx`
+- `backend/docs/docs.go`
+- `backend/docs/swagger.json`
+- `backend/docs/swagger.yaml`
+
+这组改动解决的是镜像详情按名称查询的独立兼容问题，不改变分页协议，也不应与其他未完成的业务改动混入同一提交。
+
 ## 当前工作区的整理结果
 
 当前工作区仍有未提交文件。根据 `git diff --name-only`，实际存在内容差异的文件主要是：
