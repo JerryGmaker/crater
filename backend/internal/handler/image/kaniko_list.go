@@ -6,6 +6,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 	"k8s.io/klog/v2"
 
 	"github.com/raids-lab/crater/dao/model"
@@ -110,13 +111,17 @@ func bindKanikoListPageQuery(c *gin.Context) (kanikoListPageQuery, []string, err
 }
 
 func (mgr *ImagePackMgr) listKanikoPage(c *gin.Context, userID *uint) {
+	mgr.listKanikoPageWithDB(c, query.GetDB(), userID)
+}
+
+func (mgr *ImagePackMgr) listKanikoPageWithDB(c *gin.Context, baseDB *gorm.DB, userID *uint) {
 	request, statuses, err := bindKanikoListPageQuery(c)
 	if err != nil {
 		resputil.HandleError(c, err)
 		return
 	}
 
-	db := query.GetDB().WithContext(c).
+	db := baseDB.WithContext(c).
 		Model(&model.Kaniko{}).
 		Joins("LEFT JOIN users ON users.id = kanikos.user_id")
 	if userID != nil {

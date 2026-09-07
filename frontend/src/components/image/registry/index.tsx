@@ -94,15 +94,16 @@ import { PipAptSheet } from './pip-apt-sheet'
 import { ProjectDetail } from './project-detail'
 
 const toolbarConfig: DataTableToolbarConfig = {
-  filterInput: {
+  globalSearch: {
+    enabled: true,
     placeholder: '搜索镜像',
-    key: 'image',
   },
   filterOptions: [
     {
       key: 'status',
       title: '状态',
       option: imagepackStatuses,
+      remoteFacets: true,
     },
   ],
   getHeader: getHeader,
@@ -228,6 +229,7 @@ export const KanikoListTable: FC<KanikoListTableProps> = ({
     {
       id: 'archs',
       accessorKey: 'archs',
+      enableSorting: false,
       header: ({ column }) => <DataTableColumnHeader column={column} title={getHeader('archs')} />,
       cell: ({ row }) => (
         <div className="flex flex-wrap gap-1">
