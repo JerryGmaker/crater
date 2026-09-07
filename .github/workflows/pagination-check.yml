@@ -73,6 +73,7 @@ jobs:
       - name: Run image-build pagination tests
         working-directory: backend
         env:
+          GIN_MODE: debug
           CRATER_DEBUG_CONFIG_PATH: ${{ github.workspace }}/backend/etc/example-config.yaml
           CRATER_SKIP_OPERATION_LOG_MIGRATION: "1"
         run: go test ./internal/handler/image
