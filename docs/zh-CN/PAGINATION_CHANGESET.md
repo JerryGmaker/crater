@@ -10,7 +10,7 @@
 - `2844090 test: extend pagination static guards`
 - `4899634 fix: align resource pagination search`
 
-本轮新增的镜像详情兼容修正尚未提交，待审阅的文件范围为：
+本轮新增的镜像详情兼容修正已独立提交：`2c2af55 fix: resolve image build detail by stable id`；验收边界记录已提交：`73f61d2 docs: record image detail acceptance boundary`。提交涉及的文件范围为：
 
 - `backend/internal/handler/image/buildmgr.go`
 - `backend/internal/handler/image/interface.go`
