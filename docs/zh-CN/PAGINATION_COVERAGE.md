@@ -16,6 +16,7 @@
 | 共享文件 | `/v1/dataset/mydataset/page` | `/portal/data/blocks` | 已接入，真实页面空结果已确认 | 当前小集群没有共享文件，页面显示空状态；代码已使用远程模式 |
 | 数据集共享成员 | `/v1/dataset/{datasetId}/usersIn/page`、`queuesIn/page` | 数据集详情的用户/账户共享页签 | 已接入，真实验收通过 | 已验证已有成员、搜索无结果和空状态 |
 | 镜像 | `/v1/images/image/page`、`/v1/admin/images/image/page` | `/admin/env/images` 及用户镜像列表 | 已接入，真实验收通过 | 真实数据 96 条，已验证翻页、搜索、空结果和页大小 |
+| 镜像构建 | `/v1/images/kaniko/page`、`/v1/admin/images/kaniko/page` | `/portal/env/registry`、`/admin/env/registry` | 已接入，真实验收通过 | 管理端真实数据 162 条，已验证翻页无重复、页大小、搜索、空结果、排序和状态筛选；另有独立的详情预取提示待排查 |
 | 模型下载 | `/v1/model-download/models/downloads/page` | `/portal/data/models/downloads`、`/portal/data/datasets/downloads` | 已接入，真实验收通过 | 真实数据 62 条，已验证总数、翻页、搜索、空结果和页大小 |
 | 操作日志 | `/v1/admin/operation-logs/page` | `/admin/operation-logs` | 已接入，真实验收通过 | 真实数据 89 条，已验证翻页、搜索、时间筛选、类型筛选和空结果 |
 | 定时任务记录 | `/v1/admin/operations/cronjob/record/page` | `/admin/cronjobs` | 已接入，真实验收通过 | 当前真实数据 1 条，已验证搜索、状态筛选、空结果和页大小 |
@@ -25,9 +26,7 @@
 
 ## 2. 已接入但仍需按页面补充验收
 
-| 业务 | 主要入口 | 建议检查 |
-| --- | --- | --- |
-| 镜像构建 | `images/kaniko/page` | 已完成用户端/管理端真实验收；状态筛选已改为远程 facet；仍需单独排查按名称详情预取的历史记录提示 |
+目前没有已知的标准数据库分页页面停留在“仅代码接入、尚未真实验收”状态；EMIAS 属于当前小集群未启用的阻断项，单独记录在上表。
 
 补充说明：`/portal/data/datasets` 已切换为 `apiGetDatasetPaged` 远程模式，复用数据资源分页接口；本次已在 VPN、服务和权限可用时完成真实 Network 验收。`/portal/data/models` 仍保留 `apiGetDataset` 本地模式，因为模型首页需要先拉取完整集合后按组织聚合。
 
