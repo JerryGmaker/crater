@@ -2,10 +2,13 @@
 
 ## 已提交的分页工作
 
-当前 `feature/pagination` 分支已经包含分页架构、页面迁移、自动验收脚本、Swagger 静态检查和 CI 工作流等提交。最近的两个提交是：
+当前 `feature/pagination` 分支已经包含分页架构、页面迁移、自动验收脚本、Swagger 静态检查和 CI 工作流等提交。最近的相关提交是：
 
-- `de401f5 docs: document platform pagination architecture`
-- `daa4ce8 test: automate pagination acceptance checks`
+- `c9e00ba ci: use absolute config path for pagination tests`
+- `8bdbe13 test: cover image build pagination acceptance`
+- `ddf6a4f docs: close pagination coverage matrix`
+- `2844090 test: extend pagination static guards`
+- `4899634 fix: align resource pagination search`
 
 ## 当前工作区的整理结果
 
@@ -40,7 +43,9 @@
 
 镜像构建页面本轮已完成真实只读验收：管理端 162 条数据，已验证翻页无重复、页大小、搜索、空结果、创建时间排序和失败状态筛选；普通用户端当前权限范围为空，但状态筛选控件已确认可用。为修正原先状态筛选按钮错误置灰的问题，`frontend/src/components/image/registry/index.tsx` 已将状态过滤声明为 `remoteFacets: true`。页面刷新时出现的按名称详情预取提示与分页列表请求分离，暂不纳入分页提交。
 
-集群资源页完成代码盘点和协议对齐：后端 `/v1/resources/page` 已使用公共 `search`、重复 `type` 筛选、排序白名单和 `id` 稳定排序；前端名称输入已从 `name` 列过滤改为全局远程搜索，资源类型筛选声明为 `remoteFacets: true`。本轮补充了搜索/类型先于分页、稳定排序、空结果和越界页码测试，真实页面验收待后续在管理员会话中完成。
+集群资源页完成代码盘点和协议对齐：后端 `/v1/resources/page` 已使用公共 `search`、重复 `type` 筛选、排序白名单和 `id` 稳定排序；前端名称输入已从 `name` 列过滤改为全局远程搜索，资源类型筛选声明为 `remoteFacets: true`。本轮补充了搜索/类型先于分页、稳定排序、空结果和越界页码测试；真实页面已验证翻页无重复、页大小、搜索、空结果和 `vGPU` 类型筛选。
+
+自动验收脚本现已覆盖 JobTemplate、VCJob、ApprovalOrder、GPU Analysis、用户/管理端镜像构建和 EMIAS 共 7 类接口，并检查分页响应结构、搜索/筛选条件、页大小、跨页重复和越界页。GitHub Actions 同步执行静态 Swagger/前端守卫、离线验收、镜像构建 handler 测试、DataList 测试、TypeScript 检查和前端构建；镜像构建测试使用仓库绝对配置路径，避免 Go 测试包工作目录导致的假失败。
 
 ## 明确不纳入本次分页整理
 
