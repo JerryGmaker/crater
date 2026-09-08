@@ -54,7 +54,7 @@ type OperationLogTimeRange = 'all' | '1d' | '3d' | '7d' | '15d' | '1m' | '3m'
 
 const DEFAULT_SORTING: SortingState = [
   {
-    id: 'created_at',
+    id: 'createdAt',
     desc: true,
   },
 ]
@@ -774,7 +774,8 @@ function OperationLogsPage() {
   const columns = useMemo<ColumnDef<IOperationLog>[]>(
     () => [
       {
-        accessorKey: 'created_at',
+        id: 'createdAt',
+        accessorFn: (row) => row.created_at,
         header: ({ column }) => (
           <DataTableColumnHeader
             column={column}
@@ -800,7 +801,8 @@ function OperationLogsPage() {
         ),
       },
       {
-        accessorKey: 'operation_type',
+        id: 'operationType',
+        accessorFn: (row) => row.operation_type,
         header: ({ column }) => (
           <DataTableColumnHeader
             column={column}

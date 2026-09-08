@@ -77,7 +77,9 @@ export function DataView({
   organization,
 }: DatesetTableProps) {
   const { t } = useTranslation()
-  const isRemote = sourceType === 'sharefile' && apiGetDatasetPaged !== undefined
+  // Models keep the local path because the top-level view groups them by organization.
+  // Dataset and shared-file lists are direct database collections and can use the page API.
+  const isRemote = sourceType !== 'model' && apiGetDatasetPaged !== undefined
   const [remoteQuery, setRemoteQuery] = useState(defaultRemoteQuery)
 
   const localData = useQuery({
@@ -104,7 +106,7 @@ export function DataView({
               : remoteQuery.sortDirection === 'ascending'
                 ? 'createdAt'
                 : '-createdAt',
-          type: 'sharefile',
+          type: sourceType || 'sharefile',
         },
         signal
       ),

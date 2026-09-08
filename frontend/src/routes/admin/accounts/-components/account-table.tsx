@@ -86,8 +86,8 @@ export const AccountTable = ({
   const tableState = useRemoteTableState('admin_account_management')
   const toolbarConfig = useMemo<DataTableToolbarConfig>(
     () => ({
-      filterInput: {
-        key: 'nickname',
+      globalSearch: {
+        enabled: true,
         placeholder: '搜索账户名称',
       },
       filterOptions: [],

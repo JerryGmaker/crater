@@ -651,6 +651,7 @@ export function ModelDownloadsPage() {
         updatedAt={lastUpdatedAt}
         refetch={() => void query.refetch()}
         pageSizeOptions={[10, 20, 50, 100]}
+        totalItems={total}
       />
       {tokenTarget && (
         <ModelDownloadTokenDialog

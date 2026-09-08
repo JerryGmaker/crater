@@ -82,7 +82,7 @@ const roles = [
 ]
 
 const createToolbarConfig = (t: TFunction): DataTableToolbarConfig => ({
-  filterInput: { placeholder: '搜索用户名', key: 'name' },
+  globalSearch: { enabled: true, placeholder: '搜索用户名' },
   filterOptions: [
     { key: 'role', title: '权限', option: roles },
     {

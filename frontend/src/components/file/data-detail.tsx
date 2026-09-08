@@ -341,8 +341,8 @@ export function SharedResourceTable({
 
   const userShareToolbar = useMemo<DataTableToolbarConfig>(
     () => ({
-      filterInput: {
-        key: 'name',
+      globalSearch: {
+        enabled: true,
         placeholder: t('sharedResource.userName'),
       },
       filterOptions: [],
@@ -352,8 +352,8 @@ export function SharedResourceTable({
   )
   const accountShareToolbar = useMemo<DataTableToolbarConfig>(
     () => ({
-      filterInput: {
-        key: 'name',
+      globalSearch: {
+        enabled: true,
         placeholder: t('sharedResource.accountName'),
       },
       filterOptions: [],
