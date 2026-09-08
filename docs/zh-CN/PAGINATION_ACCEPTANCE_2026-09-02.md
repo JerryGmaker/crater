@@ -46,7 +46,7 @@
 | 操作日志 | `200 OK` | `/admin/operation-logs` 显示 `共 89 条`；搜索 `DeleteJob` 返回 24 条；无匹配返回 0 条；近 7 天返回 1 条；类型筛选“取消独占”返回 1 条 | 通过；同时修正前端排序字段与后端白名单不一致的问题 |
 | 定时任务记录 | `200 OK` | `/admin/cronjobs` 显示 `共 1 条`；搜索 `clean-waiting-custom` 返回 1 条；无匹配返回 0 条；状态筛选“失败”返回 0 条；清除筛选后恢复 1 条；页大小 20 可用 | 通过；当前真实数据量不足以验证跨页不重复 |
 | 账户成员 | `200 OK` | `/admin/accounts/1` 真实数据 `total=46`；第 2 页与第 1 页无重复；页大小 20 返回 20 条；搜索 `guanjt` 返回 1 条，无匹配搜索返回 0 条 | 通过；前端搜索参数已统一为公共参数 `search` |
-| EMIAS | `404` | `/api/v1/aijobs/page` 在当前小集群未注册；服务配置中 EMIAS scheduler plugin 未启用，代码会按配置跳过该路由 | 阻断，不能记为失败 |
+| EMIAS | `200 OK` | 2026-09-08 在本地调试配置启用 EMIAS plugin 后，个人、账户和管理范围分别返回 6、8、8 条真实 AIJob；已验证跨页无重复、总数稳定、页大小、越界空页、升/降序、真实搜索、状态筛选、facets 和权限范围 | 通过 |
 
 | 镜像构建 | `200 OK` | 用户端 `/portal/env/registry` 在当前权限范围返回 `total=0`，状态筛选控件可用；管理端 `/admin/env/registry` 返回 `total=162`，第 1、2 页各 10 条且无重复，页大小 20、搜索 `gnn` 返回 4 条、无匹配搜索返回 0 条、创建时间升序生效 | 通过；状态筛选修正后重新验收 |
 | 集群资源 | `200 OK` | `/admin/cluster/resources` 显示 `共 33 条`；第 1、2 页各 10 条且无重复；页大小 20；搜索 `cpu` 返回 3 条；无匹配搜索返回 0 条；类型筛选 `vGPU` 返回 3 条 | 通过；前端搜索已统一为 `search` |
@@ -229,21 +229,28 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
 
 该修正尚未使用实验室写操作；详情接口本身的真实数据验收仍应在 VPN 和有效登录会话下补做。分页列表的真实验收与此详情问题分开记录。
 
-## 5. 阻断项与边界
+## 5. EMIAS 真实环境验收
 
-EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用 EMIAS，因此真实页面无法用当前小集群完成验收。需要在 EMIAS enabled 的环境重新执行：
+2026-09-08 已解除“路由未注册”阻断。本地调试配置启用
+`schedulerPlugins.aijob.enable` 并重启后端，启动日志确认
+`Scheduler Plugins: EMIAS(profiling: false, timeout: 120s)`，AIJob CRD 和集群中的真实 AIJob 均可访问。
 
-1. 普通用户 EMIAS 列表和 facets；
-2. 管理员 EMIAS 列表和 facets；
-3. 状态映射、权限范围和跨页稳定排序。
+在同一个已登录会话中，对以下三组只读接口执行了真实数据验收：
 
-这项阻断不影响已完成的离线 handler 测试，也不应被描述为“EMIAS 真实数据验收通过”。
+1. 个人范围：`/api/v1/aijobs/page` 和 `/api/v1/aijobs/page/facets`，`total=6`；
+2. 账户范围：`/api/v1/aijobs/all/page` 和 `/api/v1/aijobs/all/page/facets`，`total=8`；
+3. 管理范围：`/api/v1/admin/aijobs/page` 和 `/api/v1/admin/aijobs/page/facets`，`total=8`。
 
-2026-09-08 复核结果：当前后端启动日志为 `Scheduler Plugins: None enabled`；只读请求
-`GET /api/v1/aijobs/page?page=1&page_size=10` 和
-`GET /api/v1/aijobs/page/facets?days=7` 均返回 `404 Not Found`，确认是路由未注册，
-不是分页响应字段或查询逻辑错误。前端 `/portal/jobs/custom` 因当前调度器为 Volcano，
-显示普通作业列表，不能作为 EMIAS 真实验收证据。
+三组接口均验证了第 1/2 页、`page_size=1/2`、总数在页码和页大小变化时保持稳定、
+跨页不重复、创建时间升/降序、越界页返回空数组、facets 结构与键集。
+另外使用真实作业名验证搜索返回 4 条，使用真实状态验证筛选结果和 facet 计数均为 4；
+未带凭据的同一路由返回 `401`。权限范围满足“个人 ⊆ 账户 ⊆ 管理”。
+
+前端将本地调度器切换为 `colocate` 后，`/portal/jobs/custom` 成功显示 5 条 EMIAS 作业、
+真实总数和状态映射。验收过程中还发现该页误请求仅为 VCJob 注册的
+`/aijobs/billing` 路由；已在 EMIAS 列表停用该查询和计费列，重启前端后页面无 `404` 通知。
+
+本次只调整了仓库外的本地调试配置，没有修改或写入集群 AIJob。
 
 ## 6. 自动检查结果
 
@@ -252,7 +259,7 @@ EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用
 | DataList / RemoteDataTable | `pnpm test:data-list` | 通过，6/6 |
 | TypeScript | `pnpm exec tsc --noEmit` | 通过 |
 | 前端构建 | `pnpm build` | 通过，只有已有构建警告 |
-| EMIAS handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/aijob` | 通过 |
+| EMIAS handler 测试 | `CRATER_DEBUG_CONFIG_PATH=<local-debug-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/aijob -count=1` | 通过 |
 | 分页离线验收脚本 | `node --test hack/check-pagination.test.mjs` | 通过 |
 | Swagger/前端静态检查 | `node hack/check-pagination-static.mjs` | 通过，检查到 35 个 Swagger 分页路径和 17 个代表页面守卫 |
 | 镜像构建 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1` | 通过 |
@@ -274,6 +281,6 @@ EMIAS 的分页路由已进入代码和 Swagger，但当前服务配置未启用
 
 ## 7. 后续动作
 
-- 在 EMIAS enabled 环境补做真实数据验收。
+- 将 EMIAS 真实验收用例保持为后续回归基线，特别关注权限范围和状态 facets。
 - 按覆盖矩阵逐项确认仍使用本地模式的列表是否真的需要分页。
 - 对明确需要分页的剩余数据库主列表先补协议/权限/排序设计，再开发；不为 Kubernetes 快照和文件目录强行套用数据库分页。
