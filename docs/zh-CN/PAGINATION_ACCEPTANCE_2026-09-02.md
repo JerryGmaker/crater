@@ -284,3 +284,12 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
 - 在 VPN、后端和有效登录会话可用时运行 `hack/check-emias-pagination.mjs`，持续回归权限范围和状态 facets。
 - 按覆盖矩阵逐项确认仍使用本地模式的列表是否真的需要分页。
 - 对明确需要分页的剩余数据库主列表先补协议/权限/排序设计，再开发；不为 Kubernetes 快照和文件目录强行套用数据库分页。
+
+## 8. 2026-09-09 收尾检查
+
+- 本机 `127.0.0.1:8088` 和 `127.0.0.1:5173` 的 `/api/auth/mode` 均返回 `200`，前后端服务正常。
+- 匿名访问 EMIAS 分页和镜像详情接口均返回 `401`，说明路由和鉴权中间件已生效；本次会话没有可安全用于真实验收的登录 Token，因此没有把匿名结果冒充真实数据通过。
+- EMIAS 真实验收命令已准备好：
+  `CRATER_USER_AUTH_TOKEN=... CRATER_ADMIN_AUTH_TOKEN=... node hack/check-emias-pagination.mjs`。
+- 镜像详情真实只读验收应在登录后访问 `/api/v1/images/getbyid?id=<真实记录 ID>` 和管理员对应路由；代码测试与路由均已通过，当前剩余的是认证数据条件。
+- 推送 `feature/pagination` 到 fork 的尝试因当前主机连接 GitHub `443` 超时而未完成；本地分支仍保留 3 个带 DCO 提交，未丢失任何代码。
