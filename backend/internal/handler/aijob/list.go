@@ -234,7 +234,9 @@ func findAIJobs(
 ) ([]*model.AITask, int64, error) {
 	db := applyAIJobFilters(ctx, scope, request)
 	var total int64
-	if err := db.Count(&total).Error; err != nil {
+	// applyAIJobFilters selects ai_tasks.* for the item query. Reset the select
+	// expression for Count so dialects do not generate COUNT(ai_tasks.*).
+	if err := db.Session(&gorm.Session{}).Select("*").Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 	for _, clause := range request.sortClauses {
@@ -291,15 +293,78 @@ func convertAIJobPage(ctx context.Context, items []*model.AITask) ([]AIJobResp, 
 	return responses, nil
 }
 
+// ListSelfJobPage godoc
+//
+//	@Summary		List the current user's EMIAS jobs with pagination
+//	@Description	Search, filter, sort, and paginate EMIAS jobs visible to the current user's queue
+//	@Tags			AIJob
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			page		query	int		false	"Page number"
+//	@Param			page_size	query	int		false	"Page size, 1-200"
+//	@Param			search		query	string	false	"Search task name, owner, queue, or nickname"
+//	@Param			sort		query	string	false	"Sort fields, up to 3 whitelist fields"
+//	@Param			days		query	int		false	"Creation window in days, or -1 for all"
+//	@Param			job_type	query	[]string	false	"Filter by job type" collectionFormat(multi)
+//	@Param			status		query	[]string	false	"Filter by displayed job status" collectionFormat(multi)
+//	@Param			priority	query	[]string	false	"Filter by priority: high or low" collectionFormat(multi)
+//	@Param			profile_status	query	[]int		false	"Filter by profile status" collectionFormat(multi)
+//	@Success		200	{object}	resputil.Response[resputil.Page[AIJobResp]]	"Paginated EMIAS jobs"
+//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
+//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
+//	@Router			/v1/aijobs/page [get]
 func (mgr *AIJobMgr) ListSelfJobPage(c *gin.Context) {
 	token := interutil.GetToken(c)
 	mgr.listJobPage(c, aiJobListScope{queue: &token.AccountName})
 }
 
+// ListAllJobPage godoc
+//
+//	@Summary		List all EMIAS jobs with pagination
+//	@Description	Search, filter, sort, and paginate all EMIAS jobs visible to an administrator
+//	@Tags			AIJob
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			page		query	int		false	"Page number"
+//	@Param			page_size	query	int		false	"Page size, 1-200"
+//	@Param			search		query	string	false	"Search task name, owner, queue, or nickname"
+//	@Param			sort		query	string	false	"Sort fields, up to 3 whitelist fields"
+//	@Param			days		query	int		false	"Creation window in days, or -1 for all"
+//	@Param			job_type	query	[]string	false	"Filter by job type" collectionFormat(multi)
+//	@Param			status		query	[]string	false	"Filter by displayed job status" collectionFormat(multi)
+//	@Param			priority	query	[]string	false	"Filter by priority: high or low" collectionFormat(multi)
+//	@Param			profile_status	query	[]int		false	"Filter by profile status" collectionFormat(multi)
+//	@Success		200	{object}	resputil.Response[resputil.Page[AIJobResp]]	"Paginated EMIAS jobs"
+//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
+//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
+//	@Router			/v1/aijobs/all/page [get]
+//	@Router			/v1/admin/aijobs/page [get]
 func (mgr *AIJobMgr) ListAllJobPage(c *gin.Context) {
 	mgr.listJobPage(c, aiJobListScope{})
 }
 
+// ListUserJobPage godoc
+//
+//	@Summary		List one user's EMIAS jobs with pagination
+//	@Description	Search, filter, sort, and paginate EMIAS jobs owned by the specified user
+//	@Tags			AIJob
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path	string	true	"Owner username"
+//	@Param			page		query	int		false	"Page number"
+//	@Param			page_size	query	int		false	"Page size, 1-200"
+//	@Param			search		query	string	false	"Search task name, owner, queue, or nickname"
+//	@Param			sort		query	string	false	"Sort fields, up to 3 whitelist fields"
+//	@Param			days		query	int		false	"Creation window in days, or -1 for all"
+//	@Param			job_type	query	[]string	false	"Filter by job type" collectionFormat(multi)
+//	@Param			status		query	[]string	false	"Filter by displayed job status" collectionFormat(multi)
+//	@Param			priority	query	[]string	false	"Filter by priority: high or low" collectionFormat(multi)
+//	@Param			profile_status	query	[]int		false	"Filter by profile status" collectionFormat(multi)
+//	@Success		200	{object}	resputil.Response[resputil.Page[AIJobResp]]	"Paginated EMIAS jobs"
+//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
+//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
+//	@Router			/v1/aijobs/user/{username}/page [get]
+//	@Router			/v1/admin/aijobs/user/{username}/page [get]
 func (mgr *AIJobMgr) ListUserJobPage(c *gin.Context) {
 	owner := strings.TrimSpace(c.Param("username"))
 	if owner == "" {
@@ -344,15 +409,69 @@ func (mgr *AIJobMgr) listJobFacets(c *gin.Context, scope aiJobListScope) {
 	resputil.Success(c, resputil.FacetResponse{Facets: facets})
 }
 
+// ListSelfJobFacets godoc
+//
+//	@Summary		List EMIAS filter facets for the current user's jobs
+//	@Description	Return counts for EMIAS filter values using the current search and filter conditions
+//	@Tags			AIJob
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			search		query	string	false	"Search task name, owner, queue, or nickname"
+//	@Param			days		query	int		false	"Creation window in days, or -1 for all"
+//	@Param			job_type	query	[]string	false	"Filter by job type" collectionFormat(multi)
+//	@Param			status		query	[]string	false	"Filter by displayed job status" collectionFormat(multi)
+//	@Param			priority	query	[]string	false	"Filter by priority: high or low" collectionFormat(multi)
+//	@Param			profile_status	query	[]int		false	"Filter by profile status" collectionFormat(multi)
+//	@Success		200	{object}	resputil.Response[resputil.FacetResponse]	"EMIAS filter facets"
+//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
+//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
+//	@Router			/v1/aijobs/page/facets [get]
 func (mgr *AIJobMgr) ListSelfJobFacets(c *gin.Context) {
 	token := interutil.GetToken(c)
 	mgr.listJobFacets(c, aiJobListScope{queue: &token.AccountName})
 }
 
+// ListAllJobFacets godoc
+//
+//	@Summary		List EMIAS filter facets for all jobs
+//	@Description	Return counts for EMIAS filter values using the current search and filter conditions
+//	@Tags			AIJob
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			search		query	string	false	"Search task name, owner, queue, or nickname"
+//	@Param			days		query	int		false	"Creation window in days, or -1 for all"
+//	@Param			job_type	query	[]string	false	"Filter by job type" collectionFormat(multi)
+//	@Param			status		query	[]string	false	"Filter by displayed job status" collectionFormat(multi)
+//	@Param			priority	query	[]string	false	"Filter by priority: high or low" collectionFormat(multi)
+//	@Param			profile_status	query	[]int		false	"Filter by profile status" collectionFormat(multi)
+//	@Success		200	{object}	resputil.Response[resputil.FacetResponse]	"EMIAS filter facets"
+//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
+//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
+//	@Router			/v1/aijobs/all/page/facets [get]
+//	@Router			/v1/admin/aijobs/page/facets [get]
 func (mgr *AIJobMgr) ListAllJobFacets(c *gin.Context) {
 	mgr.listJobFacets(c, aiJobListScope{})
 }
 
+// ListUserJobFacets godoc
+//
+//	@Summary		List EMIAS filter facets for one user's jobs
+//	@Description	Return counts for EMIAS filter values using the current search and filter conditions
+//	@Tags			AIJob
+//	@Produce		json
+//	@Security		Bearer
+//	@Param			username	path	string	true	"Owner username"
+//	@Param			search		query	string	false	"Search task name, owner, queue, or nickname"
+//	@Param			days		query	int		false	"Creation window in days, or -1 for all"
+//	@Param			job_type	query	[]string	false	"Filter by job type" collectionFormat(multi)
+//	@Param			status		query	[]string	false	"Filter by displayed job status" collectionFormat(multi)
+//	@Param			priority	query	[]string	false	"Filter by priority: high or low" collectionFormat(multi)
+//	@Param			profile_status	query	[]int		false	"Filter by profile status" collectionFormat(multi)
+//	@Success		200	{object}	resputil.Response[resputil.FacetResponse]	"EMIAS filter facets"
+//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
+//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
+//	@Router			/v1/aijobs/user/{username}/page/facets [get]
+//	@Router			/v1/admin/aijobs/user/{username}/page/facets [get]
 func (mgr *AIJobMgr) ListUserJobFacets(c *gin.Context) {
 	owner := strings.TrimSpace(c.Param("username"))
 	if owner == "" {
