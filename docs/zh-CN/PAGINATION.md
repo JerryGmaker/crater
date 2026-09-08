@@ -232,6 +232,23 @@ CRATER_AUTH_TOKEN=... node hack/check-pagination.mjs \
 node --test hack/check-pagination.test.mjs
 ```
 
+EMIAS 的三种权限范围可使用独立只读脚本做真实环境验收。凭据只从环境变量读取，脚本不会
+接受命令行 Token，也不会输出 Token：
+
+```powershell
+$env:CRATER_API_BASE_URL = "http://localhost:8088/api/v1"
+$env:CRATER_AUTH_TOKEN = "<普通用户 access token>"
+$env:CRATER_ADMIN_AUTH_TOKEN = "<管理员 access token>"
+node hack/check-emias-pagination.mjs
+```
+
+脚本会验证个人、账户、管理范围的真实数据、跨页无重复、总数稳定、页大小、升降序、越界空页、
+动态搜索、状态筛选、facets，以及“个人 ⊆ 账户 ⊆ 管理”的权限关系。离线回归命令为：
+
+```shell
+node --test hack/check-emias-pagination.test.mjs
+```
+
 Swagger 路由和前端远程分页防回归检查：
 
 ```shell
