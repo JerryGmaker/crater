@@ -259,18 +259,18 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
 
 ## 6. 自动检查结果
 
-| 检查                           | 命令                                                                                                                                                 | 结果                                                                                   |
-| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------ | ---- |
-| 前端分页状态与 EMIAS 计费守卫  | `pnpm test:pagination`                                                                                                                               | 通过，9/9；覆盖搜索/筛选/排序/页大小回到第一页，以及 EMIAS 不请求未注册的 billing 路由 |
-| TypeScript                     | `pnpm exec tsc --noEmit`                                                                                                                             | 通过                                                                                   |
-| 前端构建                       | `pnpm build`                                                                                                                                         | 通过，只有已有构建警告                                                                 |
-| EMIAS handler 测试             | `CRATER_DEBUG_CONFIG_PATH=<local-debug-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/aijob -count=1`                      | 通过                                                                                   |
-| 分页离线验收脚本               | `node --test hack/check-pagination.test.mjs hack/check-emias-pagination.test.mjs`                                                                    | 通过，2/2                                                                              |
-| Swagger/前端静态检查           | `node hack/check-pagination-static.mjs`                                                                                                              | 通过，检查到 35 个 Swagger 分页路径和 17 个代表页面守卫                                |
-| 镜像构建 handler 测试          | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1`             | 通过                                                                                   |
-| 集群资源 handler 测试          | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler -run 'Test(ListResourcePage | BindResource                                                                           | ResourcePage)' -count=1` | 通过 |
-| 图片详情参数/列表 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1`             | 通过                                                                                   |
-| 后端全量测试                   | `GIN_MODE=debug CRATER_DEBUG_CONFIG_PATH=<absolute-example-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./... -count=1`                     | 通过                                                                                   |
+| 检查                           | 命令                                                                                                                                                       | 结果                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 前端分页状态与 EMIAS 计费守卫  | `pnpm test:pagination`                                                                                                                                     | 通过，9/9；覆盖搜索/筛选/排序/页大小回到第一页，以及 EMIAS 不请求未注册的 billing 路由 |
+| TypeScript                     | `pnpm exec tsc --noEmit`                                                                                                                                   | 通过                                                                                   |
+| 前端构建                       | `pnpm build`                                                                                                                                               | 通过，只有已有构建警告                                                                 |
+| EMIAS handler 测试             | `CRATER_DEBUG_CONFIG_PATH=<local-debug-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/aijob -count=1`                            | 通过                                                                                   |
+| 分页离线验收脚本               | `node --test hack/check-pagination.test.mjs hack/check-emias-pagination.test.mjs hack/check-image-detail.test.mjs`                                         | 通过，3/3                                                                              |
+| Swagger/前端静态检查           | `node hack/check-pagination-static.mjs`                                                                                                                    | 通过，检查到 35 个 Swagger 分页路径和 17 个代表页面守卫                                |
+| 镜像构建 handler 测试          | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1`                   | 通过                                                                                   |
+| 集群资源 handler 测试          | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler -run 'Test.*Resource.*' -count=1` | 通过                                                                                   |
+| 图片详情参数/列表 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1`                   | 通过                                                                                   |
+| 后端全量测试                   | `GIN_MODE=debug CRATER_DEBUG_CONFIG_PATH=<absolute-example-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./... -count=1`                           | 通过                                                                                   |
 
 为使干净 checkout 的全量测试可重复运行，本轮同时修正了以下测试基础问题：测试模式按 debug
 配置路径初始化；operation-log 测试正确编码 URL 搜索参数；reconciler 使用注入数据库而不是
@@ -291,5 +291,7 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
 - 匿名访问 EMIAS 分页和镜像详情接口均返回 `401`，说明路由和鉴权中间件已生效；本次会话没有可安全用于真实验收的登录 Token，因此没有把匿名结果冒充真实数据通过。
 - EMIAS 真实验收命令已准备好：
   `CRATER_USER_AUTH_TOKEN=... CRATER_ADMIN_AUTH_TOKEN=... node hack/check-emias-pagination.mjs`。
-- 镜像详情真实只读验收应在登录后访问 `/api/v1/images/getbyid?id=<真实记录 ID>` 和管理员对应路由；代码测试与路由均已通过，当前剩余的是认证数据条件。
-- 推送 `feature/pagination` 到 fork 的尝试因当前主机连接 GitHub `443` 超时而未完成；本地分支仍保留 3 个带 DCO 提交，未丢失任何代码。
+- 镜像详情自动验收命令已准备好：
+  `CRATER_USER_AUTH_TOKEN=... CRATER_ADMIN_AUTH_TOKEN=... node hack/check-image-detail.mjs`；它会从真实分页列表取得 ID，再验证用户端和管理员端稳定 ID 详情响应。
+- 镜像详情代码测试与路由均已通过，真实数据运行当前剩余的是认证数据条件。
+- 推送 `feature/pagination` 到 fork 的尝试因当前主机连接 GitHub `443` 超时而未完成；本地分支仍保留 4 个带 DCO 提交，未丢失任何代码。

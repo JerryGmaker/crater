@@ -21,7 +21,9 @@ on:
       - "frontend/src/**"
       - "hack/check-pagination*"
       - "hack/check-emias-pagination*"
+      - "hack/check-image-detail*"
       - "docs/zh-CN/PAGINATION.md"
+      - "docs/zh-CN/PAGINATION_ACCEPTANCE_2026-09-02.md"
       - ".github/workflows/pagination-check.yml"
   pull_request:
     paths:
@@ -29,7 +31,9 @@ on:
       - "frontend/src/**"
       - "hack/check-pagination*"
       - "hack/check-emias-pagination*"
+      - "hack/check-image-detail*"
       - "docs/zh-CN/PAGINATION.md"
+      - "docs/zh-CN/PAGINATION_ACCEPTANCE_2026-09-02.md"
       - ".github/workflows/pagination-check.yml"
 
 permissions:
@@ -73,7 +77,7 @@ jobs:
 
       - name: Run offline pagination acceptance test
         working-directory: .
-        run: node --test hack/check-pagination.test.mjs hack/check-emias-pagination.test.mjs
+        run: node --test hack/check-pagination.test.mjs hack/check-emias-pagination.test.mjs hack/check-image-detail.test.mjs
 
       - name: Run full backend test suite
         working-directory: backend

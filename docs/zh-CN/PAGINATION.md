@@ -249,6 +249,23 @@ node hack/check-emias-pagination.mjs
 node --test hack/check-emias-pagination.test.mjs
 ```
 
+镜像构建详情也提供稳定 ID 的只读验收脚本。它先从用户端和管理员端分页列表取得真实记录，
+再分别访问 `/images/getbyid` 和 `/admin/images/getbyid`，核对详情 ID、镜像地址、状态和
+创建时间，并确认所有请求都是 GET：
+
+```powershell
+$env:CRATER_API_BASE_URL = "http://localhost:8088/api/v1"
+$env:CRATER_USER_AUTH_TOKEN = "<普通用户 access token>"
+$env:CRATER_ADMIN_AUTH_TOKEN = "<管理员 access token>"
+node hack/check-image-detail.mjs
+```
+
+对应离线测试：
+
+```shell
+node --test hack/check-image-detail.test.mjs
+```
+
 Swagger 路由和前端远程分页防回归检查：
 
 ```shell
