@@ -20,6 +20,7 @@ on:
       - "backend/**"
       - "frontend/src/**"
       - "hack/check-pagination*"
+      - "hack/check-emias-pagination*"
       - "docs/zh-CN/PAGINATION.md"
       - ".github/workflows/pagination-check.yml"
   pull_request:
@@ -27,6 +28,7 @@ on:
       - "backend/**"
       - "frontend/src/**"
       - "hack/check-pagination*"
+      - "hack/check-emias-pagination*"
       - "docs/zh-CN/PAGINATION.md"
       - ".github/workflows/pagination-check.yml"
 
@@ -71,18 +73,18 @@ jobs:
 
       - name: Run offline pagination acceptance test
         working-directory: .
-        run: node --test hack/check-pagination.test.mjs
+        run: node --test hack/check-pagination.test.mjs hack/check-emias-pagination.test.mjs
 
-      - name: Run backend pagination tests
+      - name: Run full backend test suite
         working-directory: backend
         env:
           GIN_MODE: debug
           CRATER_DEBUG_CONFIG_PATH: ${{ github.workspace }}/backend/etc/example-config.yaml
           CRATER_SKIP_OPERATION_LOG_MIGRATION: "1"
-        run: go test ./internal/handler/image ./internal/handler/aijob
+        run: go test ./... -count=1
 
-      - name: Run DataList remote-mode tests
-        run: pnpm test:data-list
+      - name: Run frontend pagination regression tests
+        run: pnpm test:pagination
 
       - name: Type-check frontend
         run: pnpm exec tsc --noEmit

@@ -28,25 +28,25 @@
 
 ## 4. 真实页面结果
 
-| 页面 | 请求结果 | 关键证据 | 结论 |
-| --- | --- | --- | --- |
-| 作业模板 JobTemplate | `200 OK` | `GET /api/v1/jobtemplate?page=1&page_size=10&owner=all&sort=-createdAt`；响应包含 `items/total/page/page_size`，真实数据 `total=13`、第一页 10 条；第二页 3 条且与第一页无重复 | 通过 |
-| 作业模板搜索 | `200 OK` | `search=测试` 返回 `total=3`；无匹配搜索返回 `total=0`、`items=[]` | 通过 |
-| 作业模板页大小 | `200 OK` | `page_size=20` 返回 `total=13`、`items` 13 条 | 通过 |
-| 普通作业 VCJob | `200 OK` | `/api/v1/vcjobs?page=1&page_size=10&sort=-createdAt...` 及 facets 请求成功；当前账号可见 `total=0`，facets 为空 | 通过，空数据是当前权限范围的真实结果 |
-| 审批工单 ApprovalOrder | `200 OK` | `/api/v1/approvalorder/page?page=1&page_size=10&sort=-createdAt` 成功；当前账号可见 `total=0`、`items=[]` | 通过，空数据是当前权限范围的真实结果 |
-| GPU Analysis | `200 OK` | 使用白名单字段 `sort=-CreatedAt` 查询成功，响应为标准分页结构；使用错误大小写 `sort=-createdAt` 返回 `400`，说明排序白名单生效 | 通过，当前返回空数据 |
-| 管理数据集 | `200 OK` | `/admin/data` 真实页面显示 `共 60 条`；第一页和第二页各 10 条且名称无重复；搜索 `Qwen` 后显示 `共 20 条`；页大小可切换为 20 | 通过 |
-| 用户管理 | `200 OK` | `/admin/users` 真实页面显示 `共 46 条`；搜索 `guanjt` 返回 1 条；无匹配搜索返回 `total=0` | 通过 |
-| 数据集主列表 | `200 OK` | `/portal/data/datasets` 使用 `/api/v1/dataset/mydataset/page`；真实数据 `total=12`，第一页 10 条、第二页 2 条且无重复；页大小 20 返回 12 条；搜索 `Maynor` 返回 1 条；无匹配搜索返回 0 条并显示空状态 | 通过 |
-| 共享文件 | 页面空结果 | `/portal/data/blocks` 使用 `apiGetDatasetPaged` 远程模式；当前小集群无共享文件，页面显示 `暂无数据` | 空结果页面已确认；待有数据环境补充跨页 Network 证据 |
-| 数据集共享成员 | `200 OK` | 数据集详情用户共享和账户共享页签均显示 `共 1 条`；搜索无匹配后均变为 `暂无数据`、`total=0` | 通过，已覆盖已有数据和空结果 |
-| 镜像 | `200 OK` | `/admin/env/images` 显示 `共 96 条`；第一页和第二页内容不同；搜索 `vllm` 返回 `共 10 条`；无匹配返回 `共 0 条`；页大小 20 后显示 20 行 | 通过 |
-| 模型下载 | `200 OK` | `/portal/data/models/downloads` 显示 `共 62 条`；翻页内容变化；页大小 20 显示 20 行；搜索 `Maynor` 返回 1 条，搜索 `vllm` 返回 0 条 | 通过；同时修正分页底部曾误显示当前页行数的问题 |
-| 操作日志 | `200 OK` | `/admin/operation-logs` 显示 `共 89 条`；搜索 `DeleteJob` 返回 24 条；无匹配返回 0 条；近 7 天返回 1 条；类型筛选“取消独占”返回 1 条 | 通过；同时修正前端排序字段与后端白名单不一致的问题 |
-| 定时任务记录 | `200 OK` | `/admin/cronjobs` 显示 `共 1 条`；搜索 `clean-waiting-custom` 返回 1 条；无匹配返回 0 条；状态筛选“失败”返回 0 条；清除筛选后恢复 1 条；页大小 20 可用 | 通过；当前真实数据量不足以验证跨页不重复 |
-| 账户成员 | `200 OK` | `/admin/accounts/1` 真实数据 `total=46`；第 2 页与第 1 页无重复；页大小 20 返回 20 条；搜索 `guanjt` 返回 1 条，无匹配搜索返回 0 条 | 通过；前端搜索参数已统一为公共参数 `search` |
-| EMIAS | `200 OK` | 2026-09-08 在本地调试配置启用 EMIAS plugin 后，个人、账户和管理范围分别返回 6、8、8 条真实 AIJob；已验证跨页无重复、总数稳定、页大小、越界空页、升/降序、真实搜索、状态筛选、facets 和权限范围 | 通过 |
+| 页面                   | 请求结果   | 关键证据                                                                                                                                                                                              | 结论                                                |
+| ---------------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| 作业模板 JobTemplate   | `200 OK`   | `GET /api/v1/jobtemplate?page=1&page_size=10&owner=all&sort=-createdAt`；响应包含 `items/total/page/page_size`，真实数据 `total=13`、第一页 10 条；第二页 3 条且与第一页无重复                        | 通过                                                |
+| 作业模板搜索           | `200 OK`   | `search=测试` 返回 `total=3`；无匹配搜索返回 `total=0`、`items=[]`                                                                                                                                    | 通过                                                |
+| 作业模板页大小         | `200 OK`   | `page_size=20` 返回 `total=13`、`items` 13 条                                                                                                                                                         | 通过                                                |
+| 普通作业 VCJob         | `200 OK`   | `/api/v1/vcjobs?page=1&page_size=10&sort=-createdAt...` 及 facets 请求成功；当前账号可见 `total=0`，facets 为空                                                                                       | 通过，空数据是当前权限范围的真实结果                |
+| 审批工单 ApprovalOrder | `200 OK`   | `/api/v1/approvalorder/page?page=1&page_size=10&sort=-createdAt` 成功；当前账号可见 `total=0`、`items=[]`                                                                                             | 通过，空数据是当前权限范围的真实结果                |
+| GPU Analysis           | `200 OK`   | 使用白名单字段 `sort=-CreatedAt` 查询成功，响应为标准分页结构；使用错误大小写 `sort=-createdAt` 返回 `400`，说明排序白名单生效                                                                        | 通过，当前返回空数据                                |
+| 管理数据集             | `200 OK`   | `/admin/data` 真实页面显示 `共 60 条`；第一页和第二页各 10 条且名称无重复；搜索 `Qwen` 后显示 `共 20 条`；页大小可切换为 20                                                                           | 通过                                                |
+| 用户管理               | `200 OK`   | `/admin/users` 真实页面显示 `共 46 条`；搜索 `guanjt` 返回 1 条；无匹配搜索返回 `total=0`                                                                                                             | 通过                                                |
+| 数据集主列表           | `200 OK`   | `/portal/data/datasets` 使用 `/api/v1/dataset/mydataset/page`；真实数据 `total=12`，第一页 10 条、第二页 2 条且无重复；页大小 20 返回 12 条；搜索 `Maynor` 返回 1 条；无匹配搜索返回 0 条并显示空状态 | 通过                                                |
+| 共享文件               | 页面空结果 | `/portal/data/blocks` 使用 `apiGetDatasetPaged` 远程模式；当前小集群无共享文件，页面显示 `暂无数据`                                                                                                   | 空结果页面已确认；待有数据环境补充跨页 Network 证据 |
+| 数据集共享成员         | `200 OK`   | 数据集详情用户共享和账户共享页签均显示 `共 1 条`；搜索无匹配后均变为 `暂无数据`、`total=0`                                                                                                            | 通过，已覆盖已有数据和空结果                        |
+| 镜像                   | `200 OK`   | `/admin/env/images` 显示 `共 96 条`；第一页和第二页内容不同；搜索 `vllm` 返回 `共 10 条`；无匹配返回 `共 0 条`；页大小 20 后显示 20 行                                                                | 通过                                                |
+| 模型下载               | `200 OK`   | `/portal/data/models/downloads` 显示 `共 62 条`；翻页内容变化；页大小 20 显示 20 行；搜索 `Maynor` 返回 1 条，搜索 `vllm` 返回 0 条                                                                   | 通过；同时修正分页底部曾误显示当前页行数的问题      |
+| 操作日志               | `200 OK`   | `/admin/operation-logs` 显示 `共 89 条`；搜索 `DeleteJob` 返回 24 条；无匹配返回 0 条；近 7 天返回 1 条；类型筛选“取消独占”返回 1 条                                                                  | 通过；同时修正前端排序字段与后端白名单不一致的问题  |
+| 定时任务记录           | `200 OK`   | `/admin/cronjobs` 显示 `共 1 条`；搜索 `clean-waiting-custom` 返回 1 条；无匹配返回 0 条；状态筛选“失败”返回 0 条；清除筛选后恢复 1 条；页大小 20 可用                                                | 通过；当前真实数据量不足以验证跨页不重复            |
+| 账户成员               | `200 OK`   | `/admin/accounts/1` 真实数据 `total=46`；第 2 页与第 1 页无重复；页大小 20 返回 20 条；搜索 `guanjt` 返回 1 条，无匹配搜索返回 0 条                                                                   | 通过；前端搜索参数已统一为公共参数 `search`         |
+| EMIAS                  | `200 OK`   | 2026-09-08 在本地调试配置启用 EMIAS plugin 后，个人、账户和管理范围分别返回 6、8、8 条真实 AIJob；已验证跨页无重复、总数稳定、页大小、越界空页、升/降序、真实搜索、状态筛选、facets 和权限范围        | 通过                                                |
 
 | 镜像构建 | `200 OK` | 用户端 `/portal/env/registry` 在当前权限范围返回 `total=0`，状态筛选控件可用；管理端 `/admin/env/registry` 返回 `total=162`，第 1、2 页各 10 条且无重复，页大小 20、搜索 `gnn` 返回 4 条、无匹配搜索返回 0 条、创建时间升序生效 | 通过；状态筛选修正后重新验收 |
 | 集群资源 | `200 OK` | `/admin/cluster/resources` 显示 `共 33 条`；第 1、2 页各 10 条且无重复；页大小 20；搜索 `cpu` 返回 3 条；无匹配搜索返回 0 条；类型筛选 `vGPU` 返回 3 条 | 通过；前端搜索已统一为 `search` |
@@ -250,37 +250,37 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
 真实总数和状态映射。验收过程中还发现该页误请求仅为 VCJob 注册的
 `/aijobs/billing` 路由；已在 EMIAS 列表停用该查询和计费列，重启前端后页面无 `404` 通知。
 
+仓库新增只读脚本 `hack/check-emias-pagination.mjs`，从运行时环境变量读取普通用户和
+管理员 Token，不接受命令行 Token，也不输出凭据。脚本覆盖个人、账户、管理三种权限范围，
+自动验证跨页、总数、页大小、排序、越界页、真实搜索、状态筛选、facets 和权限包含关系。
+对应离线测试使用本地假服务运行，不连接实验室环境。
+
 本次只调整了仓库外的本地调试配置，没有修改或写入集群 AIJob。
 
 ## 6. 自动检查结果
 
-| 检查 | 命令 | 结果 |
-| --- | --- | --- |
-| DataList / RemoteDataTable | `pnpm test:data-list` | 通过，6/6 |
-| TypeScript | `pnpm exec tsc --noEmit` | 通过 |
-| 前端构建 | `pnpm build` | 通过，只有已有构建警告 |
-| EMIAS handler 测试 | `CRATER_DEBUG_CONFIG_PATH=<local-debug-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/aijob -count=1` | 通过 |
-| 分页离线验收脚本 | `node --test hack/check-pagination.test.mjs` | 通过 |
-| Swagger/前端静态检查 | `node hack/check-pagination-static.mjs` | 通过，检查到 35 个 Swagger 分页路径和 17 个代表页面守卫 |
-| 镜像构建 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1` | 通过 |
-| 集群资源 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler -run 'Test(ListResourcePage|BindResource|ResourcePage)' -count=1` | 通过 |
-| 图片详情参数/列表 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1` | 通过 |
+| 检查                           | 命令                                                                                                                                                 | 结果                                                                                   |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------ | ---- |
+| 前端分页状态与 EMIAS 计费守卫  | `pnpm test:pagination`                                                                                                                               | 通过，9/9；覆盖搜索/筛选/排序/页大小回到第一页，以及 EMIAS 不请求未注册的 billing 路由 |
+| TypeScript                     | `pnpm exec tsc --noEmit`                                                                                                                             | 通过                                                                                   |
+| 前端构建                       | `pnpm build`                                                                                                                                         | 通过，只有已有构建警告                                                                 |
+| EMIAS handler 测试             | `CRATER_DEBUG_CONFIG_PATH=<local-debug-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/aijob -count=1`                      | 通过                                                                                   |
+| 分页离线验收脚本               | `node --test hack/check-pagination.test.mjs hack/check-emias-pagination.test.mjs`                                                                    | 通过，2/2                                                                              |
+| Swagger/前端静态检查           | `node hack/check-pagination-static.mjs`                                                                                                              | 通过，检查到 35 个 Swagger 分页路径和 17 个代表页面守卫                                |
+| 镜像构建 handler 测试          | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1`             | 通过                                                                                   |
+| 集群资源 handler 测试          | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler -run 'Test(ListResourcePage | BindResource                                                                           | ResourcePage)' -count=1` | 通过 |
+| 图片详情参数/列表 handler 测试 | `CRATER_DEBUG_CONFIG_PATH=/tmp/crater-debug-config.yaml CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./internal/handler/image -count=1`             | 通过                                                                                   |
+| 后端全量测试                   | `GIN_MODE=debug CRATER_DEBUG_CONFIG_PATH=<absolute-example-config> CRATER_SKIP_OPERATION_LOG_MIGRATION=1 go test ./... -count=1`                     | 通过                                                                                   |
 
-补充说明：直接运行整个 `./internal/handler` 包时，包级初始化会在非 debug 模式固定读取 `/etc/config/config.yaml`，本地环境不存在该文件而提前退出；这不是分页或图片详情测试失败。可执行的图片 handler 测试和资源分页定向测试均使用 debug 配置并已通过。
-
-全仓 `go test ./... -count=1` 已尝试，未作为本轮通过项记录：
-
-- `internal/handler` 因包级初始化固定读取本地不存在的 `/etc/config/config.yaml` 退出；
-- `internal/handler/operations` 的已有测试在构造带 `&sort` 的 URL 时发生 malformed HTTP version panic；
-- `pkg/reconciler` 的已有测试尝试连接示例数据库 `192.168.0.1:6432` 并超时；
-- `pkg/util/queue` 的已有测试出现堆大小断言和类型转换失败。
-
-这些失败没有覆盖到本轮修改的图片详情、资源分页、EMIAS 分页和 JobTemplate 服务测试；相关定向测试均通过。
+为使干净 checkout 的全量测试可重复运行，本轮同时修正了以下测试基础问题：测试模式按 debug
+配置路径初始化；operation-log 测试正确编码 URL 搜索参数；reconciler 使用注入数据库而不是
+全局数据库；优先队列恢复标准堆语义；注册事务中的计费初始化保持同一个生成查询事务，避免
+模型表上下文污染。`CRATER_DEBUG_CONFIG_PATH` 必须使用绝对路径，因为 Go 会在各包目录中运行测试。
 
 自动检查证明代码结构、协议形状和离线逻辑满足预期；真实 Network 验收则证明当前环境中页面确实发出了分页请求，两者不互相替代。
 
 ## 7. 后续动作
 
-- 将 EMIAS 真实验收用例保持为后续回归基线，特别关注权限范围和状态 facets。
+- 在 VPN、后端和有效登录会话可用时运行 `hack/check-emias-pagination.mjs`，持续回归权限范围和状态 facets。
 - 按覆盖矩阵逐项确认仍使用本地模式的列表是否真的需要分页。
 - 对明确需要分页的剩余数据库主列表先补协议/权限/排序设计，再开发；不为 Kubernetes 快照和文件目录强行套用数据库分页。

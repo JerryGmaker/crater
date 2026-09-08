@@ -541,7 +541,7 @@ func (s *BillingService) IssueUserAccountNowInTransaction(
 	tx *query.Query,
 	userID, accountID uint,
 ) error {
-	return s.issueUserAccountNowTx(ctx, tx.UserAccount.WithContext(ctx).UnderlyingDB(), userID, accountID)
+	return s.issueUserAccountNowQuery(ctx, tx, userID, accountID)
 }
 
 func (s *BillingService) bootstrapIssueConfigOnFeatureEnableTx(ctx context.Context, tx *gorm.DB) error {
@@ -631,7 +631,14 @@ func (s *BillingService) issueAccountNowTx(
 }
 
 func (s *BillingService) issueUserAccountNowTx(ctx context.Context, tx *gorm.DB, userID, accountID uint) error {
-	txQuery := query.Use(tx)
+	return s.issueUserAccountNowQuery(ctx, query.Use(tx), userID, accountID)
+}
+
+func (s *BillingService) issueUserAccountNowQuery(
+	ctx context.Context,
+	txQuery *query.Query,
+	userID, accountID uint,
+) error {
 	accountQuery := txQuery.Account
 	account, err := accountQuery.WithContext(ctx).
 		Clauses(clause.Locking{Strength: "UPDATE"}).
@@ -640,7 +647,7 @@ func (s *BillingService) issueUserAccountNowTx(ctx context.Context, tx *gorm.DB,
 	if err != nil {
 		return err
 	}
-	issueConfig := loadBillingIssueConfigTx(ctx, tx)
+	issueConfig := loadBillingIssueConfigQuery(ctx, txQuery)
 	issueAmount, _ := issueConfig.resolveForAccount(account)
 
 	uaQuery := txQuery.UserAccount
@@ -1320,15 +1327,6 @@ func getSystemIntWithTx(ctx context.Context, tx *gorm.DB, key string, def int) i
 	return v
 }
 
-func getDefaultIssueAmountWithTx(ctx context.Context, tx *gorm.DB) int64 {
-	cfgQuery := query.Use(tx).SystemConfig
-	cfg, err := cfgQuery.WithContext(ctx).Where(cfgQuery.Key.Eq(model.ConfigKeyBillingDefaultIssueAmount)).First()
-	if err != nil {
-		return defaultBillingIssueAmount
-	}
-	return ParseBillingAmountConfigValue(cfg.Value, defaultBillingIssueAmount)
-}
-
 func getSystemBoolWithTx(ctx context.Context, tx *gorm.DB, key string) bool {
 	cfgQuery := query.Use(tx).SystemConfig
 	cfg, err := cfgQuery.WithContext(ctx).Where(cfgQuery.Key.Eq(key)).First()
@@ -1350,19 +1348,48 @@ func minInt64(a, b int64) int64 {
 }
 
 func loadBillingIssueConfigTx(ctx context.Context, tx *gorm.DB) billingIssueConfig {
-	defaultAmount := getDefaultIssueAmountWithTx(ctx, tx)
+	return loadBillingIssueConfigQuery(ctx, query.Use(tx))
+}
+
+func loadBillingIssueConfigQuery(ctx context.Context, tx *query.Query) billingIssueConfig {
+	cfgQuery := tx.SystemConfig
+	getString := func(key string) (string, bool) {
+		cfg, err := cfgQuery.WithContext(ctx).Where(cfgQuery.Key.Eq(key)).First()
+		if err != nil {
+			return "", false
+		}
+		return cfg.Value, true
+	}
+
+	defaultAmount := defaultBillingIssueAmount
+	if value, ok := getString(model.ConfigKeyBillingDefaultIssueAmount); ok {
+		defaultAmount = ParseBillingAmountConfigValue(value, defaultBillingIssueAmount)
+	}
 	if defaultAmount < 0 {
 		defaultAmount = defaultBillingIssueAmount
 	}
-	defaultPeriod := getSystemIntWithTx(ctx, tx, model.ConfigKeyBillingDefaultIssuePeriodMinute, defaultBillingIssuePeriodMinutes)
-	if defaultPeriod <= 0 {
-		defaultPeriod = defaultBillingIssuePeriodMinutes
+
+	defaultPeriod := defaultBillingIssuePeriodMinutes
+	if value, ok := getString(model.ConfigKeyBillingDefaultIssuePeriodMinute); ok {
+		if parsed, err := strconv.Atoi(value); err == nil && parsed > 0 {
+			defaultPeriod = parsed
+		}
 	}
+
+	getBool := func(key string) bool {
+		value, ok := getString(key)
+		if !ok {
+			return false
+		}
+		parsed, err := strconv.ParseBool(value)
+		return err == nil && parsed
+	}
+
 	return billingIssueConfig{
 		defaultAmount:         defaultAmount,
 		defaultPeriod:         defaultPeriod,
-		amountOverrideEnabled: getSystemBoolWithTx(ctx, tx, model.ConfigKeyBillingAccountIssueAmountOverrideEnabled),
-		periodOverrideEnabled: getSystemBoolWithTx(ctx, tx, model.ConfigKeyBillingAccountIssuePeriodOverrideEnabled),
+		amountOverrideEnabled: getBool(model.ConfigKeyBillingAccountIssueAmountOverrideEnabled),
+		periodOverrideEnabled: getBool(model.ConfigKeyBillingAccountIssuePeriodOverrideEnabled),
 	}
 }
 

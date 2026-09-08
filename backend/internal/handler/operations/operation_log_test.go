@@ -14,7 +14,7 @@ func TestOperationLogPageQueryDefaultsAndFilters(t *testing.T) {
 	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 	ctx.Request = httptest.NewRequest(
 		http.MethodGet,
-		"/?page=2&page_size=25&search= node &sort=-createdAt,operationType&operation_type=DrainNode",
+		"/?page=2&page_size=25&search=%20node%20&sort=-createdAt,operationType&operation_type=DrainNode",
 		nil,
 	)
 
