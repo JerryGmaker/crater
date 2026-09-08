@@ -75,6 +75,7 @@ import type { IFacetResponse, IPage } from '@/services/types'
 
 import useRemoteTableState from '@/hooks/use-remote-table-state'
 
+import { isJobBillingSupported } from '@/utils/billing-visibility'
 import { logger } from '@/utils/loglevel'
 
 import { REFETCH_INTERVAL } from '@/lib/constants'
@@ -194,9 +195,7 @@ const ColocateOverview = () => {
   const queryClient = useQueryClient()
   // EMIAS tasks live in ai_tasks and do not currently participate in the
   // billing service, whose job endpoints are only registered for VCJob.
-  // Keep the billing query disabled instead of requesting the unsupported
-  // /aijobs/billing route and presenting zero as a real billed value.
-  const billingVisible = false
+  const billingVisible = isJobBillingSupported('aijobs')
   const tableState = useRemoteTableState('portal_aijob_batch', {
     sorting: [{ id: 'createdAt', desc: true }],
   })

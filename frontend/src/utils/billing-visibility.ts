@@ -1,6 +1,11 @@
-import { IBillingStatus } from '@/services/api/system-config'
+import type { IBillingStatus } from '@/services/api/system-config'
 
 type BillingStatusLike = Pick<IBillingStatus, 'featureEnabled' | 'active'> | null | undefined
+type JobAPIPath = 'vcjobs' | 'aijobs' | 'spjobs'
+
+export function isJobBillingSupported(jobAPIPath: JobAPIPath) {
+  return jobAPIPath === 'vcjobs'
+}
 
 export function isBillingVisibleForAdmin(status: BillingStatusLike) {
   return Boolean(status?.featureEnabled)
