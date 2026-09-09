@@ -16,7 +16,7 @@
 | 共享文件 | `/v1/dataset/mydataset/page` | `/portal/data/blocks` | 已接入，真实页面空结果已确认 | 当前小集群没有共享文件，页面显示空状态；代码已使用远程模式 |
 | 数据集共享成员 | `/v1/dataset/{datasetId}/usersIn/page`、`queuesIn/page` | 数据集详情的用户/账户共享页签 | 已接入，真实验收通过 | 已验证已有成员、搜索无结果和空状态 |
 | 镜像 | `/v1/images/image/page`、`/v1/admin/images/image/page` | `/admin/env/images` 及用户镜像列表 | 已接入，真实验收通过 | 真实数据 96 条，已验证翻页、搜索、空结果和页大小 |
-| 镜像构建 | `/v1/images/kaniko/page`、`/v1/admin/images/kaniko/page` | `/portal/env/registry`、`/admin/env/registry` | 已接入，真实验收通过 | 管理端真实数据 162 条，已验证翻页无重复、页大小、搜索、空结果、排序和状态筛选；另有独立的详情预取提示待排查 |
+| 镜像构建 | `/v1/images/kaniko/page`、`/v1/admin/images/kaniko/page` | `/portal/env/registry`、`/admin/env/registry` | 已接入，真实验收通过 | 管理端真实数据 162 条，已验证翻页无重复、页大小、搜索、空结果、排序、状态筛选，以及稳定 ID 详情字段；普通用户当前为空；另有独立的详情预取提示待排查 |
 | 模型下载 | `/v1/model-download/models/downloads/page` | `/portal/data/models/downloads`、`/portal/data/datasets/downloads` | 已接入，真实验收通过 | 真实数据 62 条，已验证总数、翻页、搜索、空结果和页大小 |
 | 操作日志 | `/v1/admin/operation-logs/page` | `/admin/operation-logs` | 已接入，真实验收通过 | 真实数据 89 条，已验证翻页、搜索、时间筛选、类型筛选和空结果 |
 | 定时任务记录 | `/v1/admin/operations/cronjob/record/page` | `/admin/cronjobs` | 已接入，真实验收通过 | 当前真实数据 1 条，已验证搜索、状态筛选、空结果和页大小 |
