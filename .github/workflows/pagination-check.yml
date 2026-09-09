@@ -22,8 +22,12 @@ on:
       - "hack/check-pagination*"
       - "hack/check-emias-pagination*"
       - "hack/check-image-detail*"
+      - "hack/check-dco.mjs"
       - "docs/zh-CN/PAGINATION.md"
       - "docs/zh-CN/PAGINATION_ACCEPTANCE_2026-09-02.md"
+      - "docs/zh-CN/PAGINATION_DIFF_REVIEW.md"
+      - "docs/zh-CN/PAGINATION_PUSH_CHECKLIST.md"
+      - "docs/zh-CN/PAGINATION_NON_DATABASE_DESIGN.md"
       - ".github/workflows/pagination-check.yml"
   pull_request:
     paths:
@@ -32,8 +36,12 @@ on:
       - "hack/check-pagination*"
       - "hack/check-emias-pagination*"
       - "hack/check-image-detail*"
+      - "hack/check-dco.mjs"
       - "docs/zh-CN/PAGINATION.md"
       - "docs/zh-CN/PAGINATION_ACCEPTANCE_2026-09-02.md"
+      - "docs/zh-CN/PAGINATION_DIFF_REVIEW.md"
+      - "docs/zh-CN/PAGINATION_PUSH_CHECKLIST.md"
+      - "docs/zh-CN/PAGINATION_NON_DATABASE_DESIGN.md"
       - ".github/workflows/pagination-check.yml"
 
 permissions:
@@ -74,6 +82,23 @@ jobs:
       - name: Check Swagger pagination paths and frontend guards
         working-directory: .
         run: node hack/check-pagination-static.mjs
+
+      - name: Check DCO for introduced commits
+        working-directory: .
+        env:
+          DCO_SIGNER: "JeryGmaker <realgjt@163.com>"
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            base="${{ github.event.pull_request.base.sha }}"
+          else
+            base="${{ github.event.before }}"
+          fi
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            echo "No comparable base SHA was provided; skipping delta DCO check."
+            exit 0
+          fi
+          node hack/check-dco.mjs "$base" "$GITHUB_SHA"
 
       - name: Run offline pagination acceptance test
         working-directory: .
