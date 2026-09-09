@@ -24,7 +24,7 @@ Signed-off-by: JeryGmaker <realgjt@163.com>
 
 ### 分支历史 DCO 审计
 
-以本地 `main` 为基线审计 `main..feature/pagination` 共 57 个提交：54 个包含上述 DCO，以下 3 个历史提交缺少签署：
+以本地 `main` 为基线审计 `main..feature/pagination` 共 58 个提交：55 个包含上述 DCO，以下 3 个历史提交缺少签署：
 
 - `62da045 feat(cli): 补齐 job ls 服务端筛选参数 / expose server-side job filters (#483)`
 - `1b67f29 fix(node): show pod start time in node workloads (#505)`
@@ -36,7 +36,7 @@ Signed-off-by: JeryGmaker <realgjt@163.com>
 
 - `upstream/main` 已更新到 `62da045`。
 - `upstream/main` 已是 `feature/pagination` 的祖先，当前无需 rebase，也没有冲突。
-- 当前分支相对 `upstream/main` 有 54 个提交；相对 fork 的 `origin/feature/pagination` 已无待推送提交。
+- 当前分支相对 `upstream/main` 有 55 个提交；相对 fork 的 `origin/feature/pagination` 已无待推送提交。
 - HTTPS fetch 曾因代理自签名证书失败；已通过 SSH 只读探测和 fetch 成功确认 `upstream/main=62da045`，该提交是当前分支祖先。
 - 2026-09-09 已成功执行 `git push origin feature/pagination`，远程已更新到 `54e3c24`。
 
