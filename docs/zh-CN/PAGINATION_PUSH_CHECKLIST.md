@@ -4,11 +4,17 @@
 
 分支：`feature/pagination`
 
-本地领先 `origin/feature/pagination` 的 1 个提交：
+本地领先 `origin/feature/pagination` 的 7 个提交：
 
 1. `126b0b3 docs(pagination): record authenticated acceptance evidence`
+2. `249cd79 docs(pagination): prepare delivery and snapshot design`
+3. `f2d2290 fix(image): avoid duplicate kaniko detail lookup`
+4. `58edaf2 test(dco): add repeatable commit audit`
+5. `02069ab docs(pagination): review mixed history and compatibility`
+6. `8bd8010 test(pagination): harden CI and image detail regression checks`
+7. 本次同步状态记录提交（即当前文档所在提交）
 
-该提交包含：
+上述提交均包含：
 
 ```text
 Signed-off-by: JeryGmaker <realgjt@163.com>
@@ -16,13 +22,20 @@ Signed-off-by: JeryGmaker <realgjt@163.com>
 
 ### 分支历史 DCO 审计
 
-以本地 `main` 为基线审计 `main..feature/pagination` 共 50 个提交：47 个包含上述 DCO，以下 3 个历史提交缺少签署：
+以本地 `main` 为基线审计 `main..feature/pagination` 共 55 个提交：52 个包含上述 DCO，以下 3 个历史提交缺少签署：
 
 - `62da045 feat(cli): 补齐 job ls 服务端筛选参数 / expose server-side job filters (#483)`
 - `1b67f29 fix(node): show pod start time in node workloads (#505)`
 - `56ce3a4 feat(frontend): redesign cron job policy cards (#503)`
 
 这 3 个提交早于本次分页整理且不属于分页改动。当前不重写历史、不压缩提交；若目标仓库要求每个提交均有 DCO，应在推送前由提交作者补签，或由负责人明确授权后再制定可审计的历史重写方案。
+
+### Upstream 同步状态（2026-09-09）
+
+- `upstream/main` 已更新到 `62da045`。
+- `upstream/main` 已是 `feature/pagination` 的祖先，当前无需 rebase，也没有冲突。
+- 当前分支相对 `upstream/main` 有 52 个提交，相对 fork 的 `origin/feature/pagination` 有 7 个待推送提交。
+- HTTPS fetch 曾因 GitHub 443 连接失败；已通过 SSH 只读探测和 fetch 成功完成同步。未修改上游代码，也未推送任何远程分支。
 
 ## 推送前检查
 

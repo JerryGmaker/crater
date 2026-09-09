@@ -1,6 +1,6 @@
 # 分页分支差异审查
 
-审查范围：`main...feature/pagination`。本地分支共 50 个提交，当前审查不重写历史、不压缩提交、不推送远程。
+审查范围：`upstream/main...feature/pagination`。当前上游基线为 `62da045`，分页分支在其之后有 52 个提交；当前审查不重写历史、不压缩提交、不推送远程。
 
 ## 1. 与分页无关的历史提交
 
@@ -50,6 +50,7 @@ node hack/check-dco.mjs main feature/pagination
 
 ## 5. 当前结论
 
-- 本地最新两个待推送提交均已带 `Signed-off-by: JeryGmaker <realgjt@163.com>`。
-- 分支历史 50 个提交中有 3 个缺少该 DCO；它们是早期非分页提交，当前不代替作者补签，也不进行历史重写。
+- 当前待推送的 7 个提交均已带 `Signed-off-by: JeryGmaker <realgjt@163.com>`。
+- 以本地 `main` 为基线的 55 个提交中有 3 个缺少该 DCO；它们是早期非分页提交，当前不代替作者补签，也不进行历史重写。
+- `upstream/main` 已是分页分支祖先，因此不需要为了同步上游而 rebase。
 - PR 正文应把 Swagger 大生成差异、测试环境修正和镜像详情稳定 ID 修正分别解释，避免把无法解释的混合变化归入数据库分页。
