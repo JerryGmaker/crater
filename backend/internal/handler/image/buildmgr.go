@@ -279,7 +279,10 @@ func (mgr *ImagePackMgr) AdminGetKanikoByID(c *gin.Context) {
 }
 
 func (mgr *ImagePackMgr) buildKanikoDetailResponse(c *gin.Context, kaniko *model.Kaniko) GetKanikoResponse {
-	podName, podNameSpace, nodeName := mgr.getPodName(c, kaniko.ID)
+	// The database record has already been loaded by the detail handler. Avoid
+	// querying it a second time: a concurrent cleanup could otherwise produce a
+	// misleading "fetch kaniko by name" error while the detail itself is valid.
+	podName, podNameSpace, nodeName := mgr.getPodNameByImagePackName(c, kaniko.ImagePackName)
 	description := ""
 	if kaniko.Description != nil {
 		description = *kaniko.Description
@@ -384,12 +387,19 @@ func (mgr *ImagePackMgr) getPodName(c *gin.Context, kanikoID uint) (name, ns, no
 	if kaniko, err = kanikoQuery.WithContext(c).
 		Where(kanikoQuery.ID.Eq(kanikoID)).
 		First(); err != nil {
-		msg := fmt.Sprintf("fetch kaniko by name failed, err %v", err)
+		msg := fmt.Sprintf("fetch kaniko record by id failed, err %v", err)
 		resputil.BadRequestError(c, msg)
 		return "", UserNameSpace, ""
 	}
+	return mgr.getPodNameByImagePackName(c, kaniko.ImagePackName)
+}
+
+func (mgr *ImagePackMgr) getPodNameByImagePackName(c *gin.Context, imagePackName string) (name, ns, nodeName string) {
+	if imagePackName == "" {
+		return "", UserNameSpace, ""
+	}
 	var pod *corev1.Pod
-	pod, err = mgr.imagepackClient.GetImagePackPod(c, kaniko.ImagePackName, UserNameSpace)
+	pod, err := mgr.imagepackClient.GetImagePackPod(c, imagePackName, UserNameSpace)
 	if err != nil || pod == nil {
 		return "", UserNameSpace, ""
 	}
