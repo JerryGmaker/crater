@@ -22,7 +22,7 @@
 | 定时任务记录 | `/v1/admin/operations/cronjob/record/page` | `/admin/cronjobs` | 已接入，真实验收通过 | 当前真实数据 1 条，已验证搜索、状态筛选、空结果和页大小 |
 | 账户成员 | `/v1/accounts/{aid}/users/page`、`/v1/admin/accounts/userIn/{aid}/page` | `/admin/accounts/1` | 已接入，真实验收通过 | 真实数据 46 条，已验证翻页无重复、页大小、搜索和空结果；搜索参数已统一为 `search` |
 | 集群资源 | `/v1/resources/page` | `/admin/cluster/resources` | 已接入，真实验收通过 | 真实数据 33 条，已验证翻页无重复、页大小、搜索、空结果和 vGPU 类型筛选；前端搜索已统一为 `search` |
-| EMIAS | `/v1/aijobs/page` 及 `all/user/admin` 变体 | EMIAS 作业页 | 已接入，真实验收通过 | 本地启用 EMIAS plugin 后，真实数据个人 6 条、账户 8 条、管理 8 条；已验证翻页、总数、排序、搜索、状态筛选、facets、越界空页和权限范围 |
+| EMIAS | `/v1/aijobs/page` 及 `all/user/admin` 变体 | EMIAS 作业页 | 已接入，真实验收通过 | 本地启用 EMIAS plugin 后，接口真实数据个人 6 条、账户 8 条、管理 8 条；页面在 `EMIAS/COLOCATE` 设置下真实显示 5 条；已验证翻页、总数、排序、搜索、状态筛选、facets、越界空页和权限范围 |
 
 ## 2. 已接入但仍需按页面补充验收
 

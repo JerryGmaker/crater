@@ -24,12 +24,15 @@ const adminItems = [
   },
 ];
 
+let visibleUserItems = userItems;
+let missingDetailID = null;
+
 let server;
 let baseURL;
 const methods = [];
 
 function itemsForPath(pathname) {
-  return pathname.startsWith("/api/v1/admin/") ? adminItems : userItems;
+  return pathname.startsWith("/api/v1/admin/") ? adminItems : visibleUserItems;
 }
 
 before(async () => {
@@ -70,7 +73,7 @@ before(async () => {
     }
     const id = Number(url.searchParams.get("id"));
     const item = items.find((candidate) => candidate.ID === id);
-    if (!item) {
+    if (!item || id === missingDetailID) {
       response.writeHead(404, { "content-type": "application/json" });
       response.end(JSON.stringify({ message: "not found" }));
       return;
@@ -123,5 +126,43 @@ describe("image detail acceptance runner", () => {
         (line) => !line.includes("user-token") && !line.includes("admin-token"),
       ),
     );
+  });
+
+  it("accepts an empty user scope while still checking administrator details", async () => {
+    visibleUserItems = [];
+    try {
+      const result = await runImageDetailAcceptance({
+        baseURL,
+        userToken: "user-token",
+        adminToken: "admin-token",
+        timeoutMs: 1000,
+        log: () => {},
+      });
+
+      assert.equal(result.ok, true);
+      assert.deepEqual(result.scopes.user, { total: 0, skipped: true });
+      assert.equal(result.scopes.admin.total, 2);
+      assert.equal(result.scopes.admin.skipped, false);
+    } finally {
+      visibleUserItems = userItems;
+    }
+  });
+
+  it("fails closed when a listed detail disappears before the second GET", async () => {
+    missingDetailID = 7;
+    try {
+      await assert.rejects(
+        runImageDetailAcceptance({
+          baseURL,
+          userToken: "user-token",
+          adminToken: "admin-token",
+          timeoutMs: 1000,
+          log: () => {},
+        }),
+        /images\/getbyid returned HTTP 404/,
+      );
+    } finally {
+      missingDetailID = null;
+    }
   });
 });
