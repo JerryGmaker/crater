@@ -16,7 +16,7 @@ Signed-off-by: JeryGmaker <realgjt@163.com>
 
 ### 分支历史 DCO 审计
 
-以本地 `main` 为基线审计 `main..feature/pagination` 共 49 个提交：46 个包含上述 DCO，以下 3 个历史提交缺少签署：
+以本地 `main` 为基线审计 `main..feature/pagination` 共 50 个提交：47 个包含上述 DCO，以下 3 个历史提交缺少签署：
 
 - `62da045 feat(cli): 补齐 job ls 服务端筛选参数 / expose server-side job filters (#483)`
 - `1b67f29 fix(node): show pod start time in node workloads (#505)`
@@ -33,6 +33,7 @@ git status --short --branch
 git log origin/feature/pagination..HEAD --oneline
 git log origin/feature/pagination..HEAD --format='%h %s%n%(trailers:key=Signed-off-by,valueonly)'
 git diff --check origin/feature/pagination..HEAD
+node hack/check-dco.mjs origin/feature/pagination HEAD
 ```
 
 确认工作树干净、待推送提交带 DCO，并按上面的历史审计结果处理缺失签署后再执行：
@@ -82,3 +83,4 @@ node hack/check-image-detail.mjs
 
 - 本地分支已准备好，但按当前决定暂不执行 `git push`。
 - Kubernetes 节点/Pod 快照和文件目录不直接套用数据库页码协议，专项设计见 `PAGINATION_NON_DATABASE_DESIGN.md`。
+- 分支差异审查和混合提交说明见 `PAGINATION_DIFF_REVIEW.md`；DCO 可重复审计脚本为 `hack/check-dco.mjs`。
