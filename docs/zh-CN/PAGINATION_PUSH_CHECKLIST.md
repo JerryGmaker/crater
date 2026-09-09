@@ -4,7 +4,7 @@
 
 分支：`feature/pagination`
 
-本地领先 `origin/feature/pagination` 的 7 个提交：
+本地已与 `origin/feature/pagination` 同步；本次验收前曾领先远程的 9 个提交已全部推送：
 
 1. `126b0b3 docs(pagination): record authenticated acceptance evidence`
 2. `249cd79 docs(pagination): prepare delivery and snapshot design`
@@ -12,7 +12,9 @@
 4. `58edaf2 test(dco): add repeatable commit audit`
 5. `02069ab docs(pagination): review mixed history and compatibility`
 6. `8bd8010 test(pagination): harden CI and image detail regression checks`
-7. 本次同步状态记录提交（即当前文档所在提交）
+7. `77c7b05 docs(pagination): record upstream sync status`
+8. `f2dc27e docs(pagination): record post-restart acceptance`
+9. `54e3c24 test(pagination): record EMIAS scheduler acceptance`
 
 上述提交均包含：
 
@@ -22,7 +24,7 @@ Signed-off-by: JeryGmaker <realgjt@163.com>
 
 ### 分支历史 DCO 审计
 
-以本地 `main` 为基线审计 `main..feature/pagination` 共 55 个提交：52 个包含上述 DCO，以下 3 个历史提交缺少签署：
+以本地 `main` 为基线审计 `main..feature/pagination` 共 57 个提交：54 个包含上述 DCO，以下 3 个历史提交缺少签署：
 
 - `62da045 feat(cli): 补齐 job ls 服务端筛选参数 / expose server-side job filters (#483)`
 - `1b67f29 fix(node): show pod start time in node workloads (#505)`
@@ -34,8 +36,9 @@ Signed-off-by: JeryGmaker <realgjt@163.com>
 
 - `upstream/main` 已更新到 `62da045`。
 - `upstream/main` 已是 `feature/pagination` 的祖先，当前无需 rebase，也没有冲突。
-- 当前分支相对 `upstream/main` 有 52 个提交，相对 fork 的 `origin/feature/pagination` 有 7 个待推送提交。
-- HTTPS fetch 曾因 GitHub 443 连接失败；已通过 SSH 只读探测和 fetch 成功完成同步。未修改上游代码，也未推送任何远程分支。
+- 当前分支相对 `upstream/main` 有 54 个提交；相对 fork 的 `origin/feature/pagination` 已无待推送提交。
+- HTTPS fetch 曾因代理自签名证书失败；已通过 SSH 只读探测和 fetch 成功确认 `upstream/main=62da045`，该提交是当前分支祖先。
+- 2026-09-09 已成功执行 `git push origin feature/pagination`，远程已更新到 `54e3c24`。
 
 ## 推送前检查
 
@@ -49,7 +52,7 @@ git diff --check origin/feature/pagination..HEAD
 node hack/check-dco.mjs origin/feature/pagination HEAD
 ```
 
-确认工作树干净、待推送提交带 DCO，并按上面的历史审计结果处理缺失签署后再执行：
+如需后续追加提交，仍应确认工作树干净、待推送提交带 DCO，并按上面的历史审计结果处理缺失签署后再执行：
 
 ```powershell
 git push origin feature/pagination
@@ -75,7 +78,7 @@ node hack/check-image-detail.mjs
 
 两个脚本只发送 GET 请求；CI 只运行离线假服务测试，不会连接实验室环境。
 
-## 本地 PR 说明草稿（暂不推送）
+## 本地 PR 说明草稿
 
 ### 变更摘要
 
@@ -94,6 +97,6 @@ node hack/check-image-detail.mjs
 
 ### 当前交付边界
 
-- 本地分支已准备好，但按当前决定暂不执行 `git push`。
+- `feature/pagination` 已推送到 fork；当前工作树与远程分支一致。
 - Kubernetes 节点/Pod 快照和文件目录不直接套用数据库页码协议，专项设计见 `PAGINATION_NON_DATABASE_DESIGN.md`。
 - 分支差异审查和混合提交说明见 `PAGINATION_DIFF_REVIEW.md`；DCO 可重复审计脚本为 `hack/check-dco.mjs`。

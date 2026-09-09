@@ -293,7 +293,7 @@ GET /api/v1/jobtemplate?page=1&page_size=20&owner=all&sort=-createdAt&search=测
   `CRATER_USER_AUTH_TOKEN=... CRATER_ADMIN_AUTH_TOKEN=... node hack/check-emias-pagination.mjs`。
 - 镜像详情自动验收命令已准备好：
   `CRATER_USER_AUTH_TOKEN=... CRATER_ADMIN_AUTH_TOKEN=... node hack/check-image-detail.mjs`；它会从真实分页列表取得 ID，再验证用户端和管理员端稳定 ID 详情响应。
-- 推送 `feature/pagination` 到 fork 的尝试因当前主机连接 GitHub `443` 超时而未完成；本地分支仍保留 4 个带 DCO 提交，未丢失任何代码。
+- 历史记录：当时推送 `feature/pagination` 到 fork 因 GitHub `443` 超时未完成；后续已通过 SSH 恢复连接并在 2026-09-09 完成推送，当前远程分支已更新到 `54e3c24`。
 
 ## 9. 2026-09-09 真实登录会话补充验收
 

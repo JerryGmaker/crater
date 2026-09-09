@@ -52,7 +52,7 @@ node hack/check-dco.mjs main feature/pagination
 
 ## 5. 当前结论
 
-- 当前待推送的 7 个提交均已带 `Signed-off-by: JeryGmaker <realgjt@163.com>`。
+- 当前已推送到 fork 的新增提交均带 `Signed-off-by: JeryGmaker <realgjt@163.com>`；相对 `origin/feature/pagination` 当前无待推送提交。
 - 以本地 `main` 为基线的 55 个提交中有 3 个缺少该 DCO；它们是早期非分页提交，当前不代替作者补签，也不进行历史重写。
 - `upstream/main` 已是分页分支祖先，因此不需要为了同步上游而 rebase。
 - PR 正文应把 Swagger 大生成差异、测试环境修正和镜像详情稳定 ID 修正分别解释，避免把无法解释的混合变化归入数据库分页。
