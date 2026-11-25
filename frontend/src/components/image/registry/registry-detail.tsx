@@ -58,6 +58,7 @@ import { KanikoDetailResponse, apiUserRemoveKanikoList } from '@/services/api/im
 import { getApiErrorData } from '@/services/client'
 import { ERROR_RESOURCE_STATUS_ERROR } from '@/services/error_code'
 import { buildDetailKey, queryBuildDetail } from '@/services/query/image'
+import { invalidateImageBuildLists } from '@/services/query/pagination-cache'
 
 import useIsAdmin from '@/hooks/use-admin'
 
@@ -99,6 +100,7 @@ function RegistryInfo({
         await new Promise((resolve) => setTimeout(resolve, 2000))
       }
 
+      await invalidateImageBuildLists(queryClient)
       if (variables.isCancel) {
         // 取消操作:刷新当前页面数据
         await queryClient.invalidateQueries({ queryKey })

@@ -57,6 +57,9 @@ jobs:
       - name: Run lint
         run: pnpm run lint
 
+      - name: Run frontend regression tests
+        run: make test
+
       - name: Test job phases
         run: make test-job-phases
 

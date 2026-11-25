@@ -14,16 +14,17 @@
  * limitations under the License.
  */
 import { Visibility } from '@/components/badge/visibility-badge'
+import {
+  type RemoteTableParams,
+  buildRemoteSearchParams,
+} from '@/components/query-table/remote-state'
 
+import { fetchAllPages } from '@/services/api/pagination'
 import { apiV1Delete, apiV1Get, apiV1Post } from '@/services/client'
-import { IResponse } from '@/services/types'
+import { IPage, IResponse } from '@/services/types'
 
 import { IUserAttributes } from './admin/user'
 import { IUserInfo, JobType } from './vcjob'
-
-export type ListKanikoResponse = {
-  kanikoList: KanikoInfoResponse[]
-}
 
 export type KanikoInfoResponse = {
   ID: number
@@ -67,6 +68,7 @@ export type ListImageResponse = {
 
 export type ImageInfoResponse = {
   ID: number
+  imageBuildID?: number
   imageLink: string
   description: string
   status: string
@@ -415,7 +417,11 @@ export function parseImageLink(imageLink: string) {
   return { imageName: '', imageTag: '' }
 }
 
-export const apiUserListKaniko = () => apiV1Get<IResponse<ListKanikoResponse>>('images/kaniko')
+export const apiUserListKanikoPage = (params: RemoteTableParams, signal?: AbortSignal) =>
+  apiV1Get<IResponse<IPage<KanikoInfoResponse>>>('images/kaniko', {
+    searchParams: buildRemoteSearchParams(params),
+    signal,
+  })
 
 export const apiUserCreateKaniko = async (imagepack: KanikoCreate) => {
   const response = await apiV1Post<IResponse<string>>('images/kaniko', imagepack)
@@ -445,7 +451,18 @@ export const apiUserGetKaniko = (name: string, signal?: AbortSignal) =>
     signal,
   })
 
-export const apiUserListImage = () => apiV1Get<IResponse<ListImageResponse>>('images/image')
+export const apiUserListImage = async (): Promise<IResponse<ListImageResponse>> => {
+  const response = await fetchAllPages((page) =>
+    apiUserListImagePage({ page, page_size: 200, sort: '-createdAt', filters: {} })
+  )
+  return { ...response, data: { imageList: response.data } }
+}
+
+export const apiUserListImagePage = (params: RemoteTableParams, signal?: AbortSignal) =>
+  apiV1Get<IResponse<IPage<ImageInfoResponse>>>('images/image', {
+    searchParams: buildRemoteSearchParams(params),
+    signal,
+  })
 
 export const apiUserChangeImagePublicStatus = (id: number) =>
   apiV1Post<IResponse<string>>(`images/change/${id}`)

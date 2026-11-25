@@ -53,16 +53,12 @@ import GrafanaIframe from '@/components/layout/embed/grafana-iframe'
 import {
   type ApprovalOrder,
   adminGetApprovalOrder,
-  listJobApprovalOrders,
   reviewApprovalOrder,
 } from '@/services/api/approvalorder'
-import {
-  JobStatus,
-  apiAdminGetJobDetail,
-  apiJobGetPods,
-  getJobStateType,
-} from '@/services/api/vcjob'
+import { listJobApprovalOrders } from '@/services/api/approvalorder'
+import { JobStatus, apiJobGetDetail, apiJobGetPods, getJobStateType } from '@/services/api/vcjob'
 import { queryNodes } from '@/services/query/node'
+import { invalidateApprovalOrderLists } from '@/services/query/pagination-cache'
 
 import { useApprovalOrderLock } from '@/hooks/use-approval-order-lock'
 
@@ -109,8 +105,8 @@ function RouteComponent() {
 
   // Fetch job detail if it's a job
   const { data: jobDetail } = useQuery({
-    queryKey: ['job', 'detail', order?.name, 'admin'],
-    queryFn: () => apiAdminGetJobDetail(order!.name),
+    queryKey: ['job', 'detail', order?.name],
+    queryFn: () => apiJobGetDetail(order!.name),
     select: (res) => res.data,
     enabled: !!order && order.type === 'job',
   })
@@ -158,10 +154,11 @@ function RouteComponent() {
     selectedJob,
     selectedExtHours,
     isDelayDialogOpen,
-    isProcessingLock,
+    isFetchingJob,
     handleApproveWithDelay,
     submitApprovalLock,
-    onDelayDialogOpenChange,
+    setIsDelayDialogOpen,
+    clearSelection,
   } = useApprovalOrderLock()
 
   const [isRejectDialogOpen, setIsRejectDialogOpen] = useState(false)
@@ -171,6 +168,7 @@ function RouteComponent() {
     queryClient.invalidateQueries({ queryKey: ['admin', 'approvalorders'] })
     queryClient.invalidateQueries({ queryKey: ['approvalorders'] })
     queryClient.invalidateQueries({ queryKey: ['portal', 'approvalorders'] })
+    void invalidateApprovalOrderLists(queryClient)
   }
 
   const approveMutation = useMutation({
@@ -263,7 +261,7 @@ function RouteComponent() {
   }
 
   const isPendingStatus = order?.status === 'Pending'
-  const isProcessing = approveMutation.isPending || rejectMutation.isPending || isProcessingLock
+  const isProcessing = approveMutation.isPending || rejectMutation.isPending || isFetchingJob
 
   if (!order) {
     return <div className="text-muted-foreground p-6 text-center">工单不存在或已被删除</div>
@@ -475,8 +473,13 @@ function RouteComponent() {
           key={`${selectedOrder.id}-${selectedExtHours}`}
           jobs={[selectedJob]}
           open={isDelayDialogOpen}
-          setOpen={onDelayDialogOpenChange}
+          setOpen={(open) => {
+            setIsDelayDialogOpen(open)
+            if (!open) clearSelection()
+          }}
           submitLock={submitApprovalLock}
+          onSuccess={() => void refetch()}
+          setExtend={selectedJob.locked}
           defaultDays={Math.floor(selectedExtHours / 24)}
           defaultHours={selectedExtHours % 24}
         />

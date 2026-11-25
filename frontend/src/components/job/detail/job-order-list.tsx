@@ -43,6 +43,7 @@ import {
   listJobApprovalOrders,
   reviewApprovalOrder,
 } from '@/services/api/approvalorder'
+import { invalidateApprovalOrderLists } from '@/services/query/pagination-cache'
 
 import useAdmin from '@/hooks/use-admin'
 import { useApprovalOrderLock } from '@/hooks/use-approval-order-lock'
@@ -90,11 +91,7 @@ export default function JobOrderList({ jobName }: JobOrderListProps) {
   })
 
   // 刷新工单列表
-  const refetchOrders = () => {
-    queryClient.invalidateQueries({
-      queryKey: ['approvalorders', 'byName', jobName],
-    })
-  }
+  const refetchOrders = () => void invalidateApprovalOrderLists(queryClient)
 
   // 批准操作（仅用于无需锁定的场景）
   const { mutate: approveOrder, isPending: isApproving } = useMutation({
