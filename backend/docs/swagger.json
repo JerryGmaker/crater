@@ -7,6 +7,55 @@
         "version": "1.0.0"
     },
     "paths": {
+        "/admin/nodes/{name}/pods": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "获取节点Pod信息，包含作业和用户信息",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Node"
+                ],
+                "summary": "获取节点Pod信息（管理员）",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "节点名称",
+                        "name": "name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "成功返回值描述",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-array_github_com_raids-lab_crater_pkg_crclient_Pod"
+                        }
+                    },
+                    "400": {
+                        "description": "请求参数错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "500": {
+                        "description": "其他错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/check": {
             "get": {
                 "security": [
@@ -357,6 +406,64 @@
                 }
             }
         },
+        "/v1/accounts/{aid}/billing/members": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "List account billing members",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "aid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Filter to these user IDs",
+                        "name": "user_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/accounts/{aid}/users": {
             "get": {
                 "security": [
@@ -364,7 +471,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "Get list of users in account (requires user to be in account)",
+                "description": "Get list of users in account (requires user to be in account)\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
                 "consumes": [
                     "application/json"
                 ],
@@ -382,13 +489,57 @@
                         "name": "aid",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (1-200)",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by username",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by name, role or accessmode; prefix - for descending",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Member roles: 2 (user), 3 (admin)",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Access modes: 1 (none), 2 (read), 3 (write), 4 (append)",
+                        "name": "accessmode",
+                        "in": "query"
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "User account entries",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_UserProjectGetResp"
                         }
                     },
                     "400": {
@@ -734,6 +885,199 @@
                 }
             }
         },
+        "/v1/admin/accounts": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "按统一分页协议获取账户列表，搜索、排序和分页在数据库中执行\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "管理员获取账户分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search account name or nickname",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ListAllResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/accounts/userIn/{aid}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "SQL query with join\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Get users in account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "aid",
+                        "name": "aid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page number (1-based)",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size (1-200)",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search by username",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by name, role or accessmode; prefix - for descending",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Member roles: 2 (user), 3 (admin)",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Access modes: 1 (none), 2 (read), 3 (write), 4 (append)",
+                        "name": "accessmode",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User account entries",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_UserProjectGetResp"
+                        }
+                    },
+                    "400": {
+                        "description": "Request parameter error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Other errors",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/accounts/userOutOf/{aid}": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "SQL query with subquery",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "Get users not in account",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "aid",
+                        "name": "aid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User account entries",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Request parameter error",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "500": {
+                        "description": "Other errors",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/admin/accounts/{aid}": {
             "get": {
                 "security": [
@@ -775,6 +1119,58 @@
                     },
                     "500": {
                         "description": "其他错误",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/accounts/{aid}/billing/members": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Project"
+                ],
+                "summary": "List account billing members",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Account ID",
+                        "name": "aid",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "integer"
+                        },
+                        "collectionFormat": "multi",
+                        "description": "Filter to these user IDs",
+                        "name": "user_id",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
@@ -879,34 +1275,57 @@
                         "Bearer": []
                     }
                 ],
-                "description": "展示所有审批订单",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "按统一分页协议获取所有审批工单\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "approvalorder"
                 ],
-                "summary": "展示所有审批订单",
+                "summary": "管理员获取审批工单分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search order names",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by order type; repeatable",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by order status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "成功返回值描述",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ApprovalOrderResp"
                         }
                     }
                 }
@@ -941,6 +1360,31 @@
                         "description": "服务器错误",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/admin/approvalorder/summary": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "返回与列表分页无关的审批工单统计数据",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "approvalorder"
+                ],
+                "summary": "获取审批工单聚合统计",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ApprovalOrderSummaryResp"
                         }
                     }
                 }
@@ -1142,32 +1586,61 @@
                         "Bearer": []
                     }
                 ],
-                "description": "获取所有数据集",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "按类型、搜索和排序条件过滤后分页返回数据资源\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Dataset"
                 ],
-                "summary": "获取所有数据集",
+                "summary": "管理员分页获取所有数据资源",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search name or description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by type; repeatable",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "成功返回值描述",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_DatasetResp"
                         }
                     },
                     "400": {
-                        "description": "Request parameter error",
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
                     },
                     "500": {
-                        "description": "Other errors",
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
@@ -1830,18 +2303,54 @@
                         "Bearer": []
                     }
                 ],
-                "description": "所有的镜像数据",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Supplying page or page_size returns a page; omitting both preserves the complete legacy imageList wrapper.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "ImagePack"
                 ],
-                "summary": "管理员获取所有镜像数据",
-                "responses": {}
+                "summary": "分页获取全部镜像",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search image, description, or creator",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by visibility; repeatable",
+                        "name": "imageShareStatus",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_ImageInfo"
+                        }
+                    }
+                }
             }
         },
         "/v1/admin/images/kaniko": {
@@ -1851,18 +2360,54 @@
                         "Bearer": []
                     }
                 ],
-                "description": "管理员获取所有镜像制作信息",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Supplying page or page_size returns a page; omitting both preserves the complete legacy kanikoList wrapper.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "ImagePack"
                 ],
-                "summary": "管理员获取相关镜像的功能",
-                "responses": {}
+                "summary": "分页获取全部镜像制作记录",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search image, description, or creator",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_KanikoInfo"
+                        }
+                    }
+                }
             },
             "post": {
                 "security": [
@@ -1976,29 +2521,70 @@
                 "responses": {}
             }
         },
-        "/v1/admin/models/downloads": {
+        "/v1/admin/model-download/models/downloads": {
             "get": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "description": "管理员查看所有用户的模型下载任务",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Without page_size, an omitted or nonpositive page preserves the complete legacy array.\nLegacy page/pageSize requests keep items, total and summary; canonical page_size adds page metadata.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "ModelDownload"
                 ],
-                "summary": "管理员获取所有模型下载任务",
+                "summary": "分页获取模型下载任务",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Legacy page size, defaults to 20 and caps at 100",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search download name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by model or dataset",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-array_internal_handler_ModelDownloadResp"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ModelDownloadListResp"
                         }
                     }
                 }
@@ -2090,55 +2676,6 @@
                 }
             }
         },
-        "/v1/admin/nodes/{name}/pods": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "获取节点Pod信息，匹配到 Crater 作业时包含 jobName、jobStatus、锁定状态和用户信息",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Node"
-                ],
-                "summary": "获取节点Pod信息（管理员）",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "节点名称",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "成功返回值描述",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-array_github_com_raids-lab_crater_pkg_crclient_Pod"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "其他错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/admin/operation-logs": {
             "get": {
                 "security": [
@@ -2146,64 +2683,73 @@
                         "Bearer": []
                     }
                 ],
-                "description": "获取操作日志列表，支持分页和筛选",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "按统一分页协议获取操作日志，筛选和排序在数据库中执行\nLegacy limit requests keep the existing items/total response. Supplying page_size returns the shared page metadata.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "OperationLog"
                 ],
-                "summary": "获取操作日志列表",
+                "summary": "获取操作日志分页",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "页码",
+                        "description": "Page number",
                         "name": "page",
                         "in": "query"
                     },
                     {
                         "type": "integer",
-                        "description": "每页数量",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Legacy page size; conflicts with a different page_size",
                         "name": "limit",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "操作类型",
-                        "name": "operation_type",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "操作人",
-                        "name": "operator",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "操作对象",
-                        "name": "target",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "模糊搜索关键词",
+                        "description": "Search operator, type, target, or message",
                         "name": "search",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "开始时间，格式例如：2024-01-02T15:04:05Z",
+                        "description": "Filter by operation type",
+                        "name": "operation_type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by operator",
+                        "name": "operator",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by target",
+                        "name": "target",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start time, RFC3339",
                         "name": "start_time",
                         "in": "query"
                     },
                     {
                         "type": "string",
-                        "description": "结束时间，格式例如：2024-01-02T15:04:05Z",
+                        "description": "End time, RFC3339",
                         "name": "end_time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
                         "in": "query"
                     }
                 ],
@@ -2211,19 +2757,7 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_List-internal_handler_operations_OperationLogResp"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "Internal Server Error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_operations_OperationLogResp"
                         }
                     }
                 }
@@ -2261,14 +2795,86 @@
                 }
             }
         },
-        "/v1/admin/projects": {
+        "/v1/admin/operations/cronjob/record/list": {
             "get": {
                 "security": [
                     {
                         "Bearer": []
                     }
                 ],
-                "description": "Get summary info of all accounts, supports filtering, pagination and sorting",
+                "description": "按统一分页协议获取执行记录，搜索、筛选、排序和分页在数据库中执行",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Operations"
+                ],
+                "summary": "获取定时任务执行记录分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search job name or message",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Restrict to job names; repeatable",
+                        "name": "scope_name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Start time, RFC3339",
+                        "name": "start_time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "End time, RFC3339",
+                        "name": "end_time",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-github_com_raids-lab_crater_dao_model_CronJobRecord"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
                 "consumes": [
                     "application/json"
                 ],
@@ -2276,66 +2882,30 @@
                     "application/json"
                 ],
                 "tags": [
-                    "Project"
+                    "Operations"
                 ],
-                "summary": "Get all accounts",
+                "summary": "获取旧版定时任务执行记录",
+                "deprecated": true,
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "部分匹配账户名称",
-                        "name": "nameLike",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "asc",
-                            "desc"
-                        ],
-                        "type": "string",
-                        "x-enum-varnames": [
-                            "Asc",
-                            "Desc"
-                        ],
-                        "description": "排序方式（升序、降序）",
-                        "name": "order",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "排序字段",
-                        "name": "orderCol",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "第几页（从0开始）",
-                        "name": "pageIndex",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页大小",
-                        "name": "pageSize",
-                        "in": "query",
-                        "required": true
+                        "description": "Record filters",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/internal_handler_operations.legacyCronJobRecordsRequest"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "账户列表",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_operations_legacyCronJobRecordsResponse"
                         }
                     },
                     "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "其他错误",
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
@@ -2524,53 +3094,6 @@
             }
         },
         "/v1/admin/projects/userIn/{aid}": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "SQL query with join",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Project"
-                ],
-                "summary": "Get users in account",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "aid",
-                        "name": "aid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User account entries",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "400": {
-                        "description": "Request parameter error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "Other errors",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    }
-                }
-            },
             "put": {
                 "security": [
                     {
@@ -2611,55 +3134,6 @@
                         "description": "更新结果",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_PutUserInProjectResp"
-                        }
-                    },
-                    "400": {
-                        "description": "Request parameter error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "Other errors",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/projects/userOutOf/{aid}": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "SQL query with subquery",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Project"
-                ],
-                "summary": "Get users not in account",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "description": "aid",
-                        "name": "aid",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "User account entries",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
                     },
                     "400": {
@@ -3490,169 +3964,6 @@
                 }
             }
         },
-        "/v1/admin/statistics": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "按 UTC 自然日统计，最多 366 天。时间区间为左闭右开。",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "statistics"
-                ],
-                "summary": "获取管理员资源统计",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "开始 UTC 日，UTC 00:00 (RFC3339)",
-                        "name": "startTime",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "结束 UTC 日，不包含，必须晚于开始时间 (RFC3339)",
-                        "name": "endTime",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "day/week，默认 day",
-                        "name": "step",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "user/account/cluster",
-                        "name": "scope",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "scope=user 或 account 时必填，scope=cluster 时忽略",
-                        "name": "targetID",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_payload_StatisticsResp"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/statistics/rankings": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "按 UTC 自然日统计，最多 366 天。时间区间为左闭右开。",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "statistics"
-                ],
-                "summary": "获取管理员资源排名",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "开始 UTC 日，UTC 00:00 (RFC3339)",
-                        "name": "startTime",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "结束 UTC 日，不包含，必须晚于开始时间 (RFC3339)",
-                        "name": "endTime",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "cluster/account",
-                        "name": "scope",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "scope=account 时必填，scope=cluster 时忽略",
-                        "name": "targetID",
-                        "in": "query"
-                    },
-                    {
-                        "enum": [
-                            "user",
-                            "account"
-                        ],
-                        "type": "string",
-                        "description": "scope=account 时仅支持 user，scope=cluster 时支持 user/account",
-                        "name": "dimension",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "usage/effectiveUsage/utilization",
-                        "name": "metric",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "asc/desc",
-                        "name": "order",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "完整资源名，与 resourceType 二选一",
-                        "name": "resourceName",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "gpu：全部整卡 GPU 资源",
-                        "name": "resourceType",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "页码，默认 1",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页条数，默认 20，最多 100",
-                        "name": "pageSize",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_payload_StatisticsRankingResp"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/admin/storage/capabilities": {
             "get": {
                 "security": [
@@ -4167,34 +4478,63 @@
                         "Bearer": []
                     }
                 ],
-                "description": "列出用户信息（包含私人配额）",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "按统一分页协议获取用户列表，搜索、筛选、排序和分页在数据库中执行\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "User"
                 ],
-                "summary": "列出用户信息",
+                "summary": "管理员获取用户分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search username or nickname",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by role; repeatable",
+                        "name": "role",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Filter by status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "Filter by current ban status; repeatable",
+                        "name": "banned",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "成功获取用户信息",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-array_internal_handler_UserResp"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "其他错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_UserResp"
                         }
                     }
                 }
@@ -4594,61 +4934,6 @@
                     },
                     "500": {
                         "description": "Other errors",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/admin/vcjobs/{name}/detail": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "按作业名称查询作业详情和锁定状态",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "VolcanoJob"
-                ],
-                "summary": "获取作业详情（管理员）",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Job Name",
-                        "name": "name",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "作业详情（含 locked、permanentLocked 和 lockedTimestamp）",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "400": {
-                        "description": "Request parameter error",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "404": {
-                        "description": "Job not found",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "Database error",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
@@ -5480,34 +5765,57 @@
                         "Bearer": []
                     }
                 ],
-                "description": "获取当前用户创建的所有审批工单",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "按统一分页协议获取当前用户创建的审批工单\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "approvalorder"
                 ],
-                "summary": "获取我的审批工单",
+                "summary": "获取我的审批工单分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search order names",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by order type; repeatable",
+                        "name": "type",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by order status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "成功返回工单列表",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "400": {
-                        "description": "请求参数错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
-                        }
-                    },
-                    "500": {
-                        "description": "服务器错误",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ApprovalOrderResp"
                         }
                     }
                 }
@@ -6376,32 +6684,67 @@
                         "Bearer": []
                     }
                 ],
-                "description": "获取数据集",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "按权限、类型、搜索和排序条件过滤后分页返回数据资源\nSupplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "Dataset"
                 ],
-                "summary": "获取数据集",
+                "summary": "获取可访问数据资源分页",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search name or description",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Owner scope: all, mine, or others",
+                        "name": "owner",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by createdAt, updatedAt, or mountCount",
+                        "name": "sort",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Resource type: dataset, model, or sharefile",
+                        "name": "type",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "成功返回值描述",
+                        "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_DatasetResp"
                         }
                     },
                     "400": {
-                        "description": "Request parameter error",
+                        "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
                     },
                     "500": {
-                        "description": "Other errors",
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
@@ -6685,9 +7028,9 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "成功返回值描述",
+                        "description": "Shared users",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-array_internal_handler_UserOfDatasetResp"
                         }
                     },
                     "400": {
@@ -7190,18 +7533,54 @@
                         "Bearer": []
                     }
                 ],
-                "description": "返回该用户所有的镜像数据",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Supplying page or page_size returns a page; omitting both preserves the complete legacy imageList wrapper.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "ImagePack"
                 ],
-                "summary": "用户获取所有镜像数据",
-                "responses": {}
+                "summary": "分页获取当前用户可见镜像",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search image, description, or creator",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by visibility; repeatable",
+                        "name": "imageShareStatus",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_ImageInfo"
+                        }
+                    }
+                }
             },
             "post": {
                 "security": [
@@ -7273,18 +7652,54 @@
                         "Bearer": []
                     }
                 ],
-                "description": "返回该用户所有的镜像构建数据",
-                "consumes": [
-                    "application/json"
-                ],
+                "description": "Supplying page or page_size returns a page; omitting both preserves the complete legacy kanikoList wrapper.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
                     "ImagePack"
                 ],
-                "summary": "用户获取镜像构建信息",
-                "responses": {}
+                "summary": "分页获取当前用户的镜像制作记录",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search image, description, or creator",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_KanikoInfo"
+                        }
+                    }
+                }
             },
             "post": {
                 "security": [
@@ -7668,7 +8083,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "展示所有作业模板",
+                "description": "List job templates with server-side pagination, search, owner filtering, and sorting\nSupplying page or page_size returns a page with an empty items array when no templates match.\nOmitting both returns the complete legacy list, or null when empty.",
                 "consumes": [
                     "application/json"
                 ],
@@ -7678,12 +8093,44 @@
                 "tags": [
                     "jobtemplate"
                 ],
-                "summary": "展示所有作业模板",
+                "summary": "List job templates",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search template names",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Owner scope: all, mine, or others",
+                        "name": "owner",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort by createdAt or -createdAt",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
-                        "description": "成功返回值描述",
+                        "description": "Job template page",
                         "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_JobTemplateresp"
                         }
                     },
                     "400": {
@@ -7801,6 +8248,107 @@
                 }
             }
         },
+        "/v1/model-download/models/downloads": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "description": "Without page_size, an omitted or nonpositive page preserves the complete legacy array.\nLegacy page/pageSize requests keep items, total and summary; canonical page_size adds page metadata.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ModelDownload"
+                ],
+                "summary": "分页获取模型下载任务",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Page number",
+                        "name": "page",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Page size, 1-200",
+                        "name": "page_size",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Legacy page size, defaults to 20 and caps at 100",
+                        "name": "pageSize",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Search download name",
+                        "name": "search",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by model or dataset",
+                        "name": "category",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Filter by status; repeatable",
+                        "name": "status",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Sort fields",
+                        "name": "sort",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ModelDownloadListResp"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/model-download/models/downloads/summary": {
+            "get": {
+                "security": [
+                    {
+                        "Bearer": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "ModelDownload"
+                ],
+                "summary": "获取模型下载任务状态汇总",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Filter by model or dataset",
+                        "name": "category",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-map_string_int64"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/models/download": {
             "post": {
                 "security": [
@@ -7835,66 +8383,6 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ModelDownloadResp"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/models/downloads": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "下载记录对全平台用户可见。带 page 参数时返回分页结构(含状态汇总),否则返回全量数组(兼容旧客户端)",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "ModelDownload"
-                ],
-                "summary": "获取模型下载任务列表",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "过滤类别: model 或 dataset",
-                        "name": "category",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "页码(从1开始);不传则返回全量数组",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页数量,默认20,最大100",
-                        "name": "pageSize",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "过滤状态: Pending/Downloading/Paused/Ready/Failed",
-                        "name": "status",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "按名称模糊搜索",
-                        "name": "search",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ModelDownloadListResp"
                         }
                     }
                 }
@@ -9886,7 +10374,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "按 UTC 自然日统计，最多 366 天。个人维度查询本人返回完整指标，查询他人仅返回占用量。账户管理员可查询完整指标。",
+                "description": "获取指定时间范围、指定维度的资源使用统计（核时/卡时）",
                 "consumes": [
                     "application/json"
                 ],
@@ -9900,27 +10388,28 @@
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "开始 UTC 自然日，必须为 UTC 00:00 (RFC3339)",
+                        "description": "开始时间 (RFC3339)",
                         "name": "startTime",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "结束 UTC 自然日，不包含，必须为 UTC 00:00 且晚于开始时间 (RFC3339)",
+                        "description": "结束时间 (RFC3339)",
                         "name": "endTime",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "string",
-                        "description": "聚合粒度 (day/week)，默认 day",
+                        "description": "聚合粒度 (day/week)",
                         "name": "step",
-                        "in": "query"
+                        "in": "query",
+                        "required": true
                     },
                     {
                         "type": "string",
-                        "description": "统计范围 (user/account)",
+                        "description": "统计范围 (user/account/cluster)",
                         "name": "scope",
                         "in": "query",
                         "required": true
@@ -9929,8 +10418,7 @@
                         "type": "integer",
                         "description": "目标ID (user_id 或 account_id)",
                         "name": "targetID",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -9938,109 +10426,6 @@
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_payload_StatisticsResp"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/statistics/rankings": {
-            "get": {
-                "security": [
-                    {
-                        "Bearer": []
-                    }
-                ],
-                "description": "按 UTC 自然日统计，最多 366 天。利用率缺失的对象不进入利用率排名。",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "statistics"
-                ],
-                "summary": "获取资源用量与利用率排名",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "开始 UTC 日 (RFC3339)",
-                        "name": "startTime",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "结束 UTC 日，不包含 (RFC3339)",
-                        "name": "endTime",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "account",
-                        "name": "scope",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "integer",
-                        "description": "账户 ID",
-                        "name": "targetID",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "enum": [
-                            "user"
-                        ],
-                        "type": "string",
-                        "description": "user",
-                        "name": "dimension",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "usage/effectiveUsage/utilization",
-                        "name": "metric",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "asc/desc",
-                        "name": "order",
-                        "in": "query",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "完整资源名，与 resourceType 二选一",
-                        "name": "resourceName",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "gpu：全部整卡 GPU 资源",
-                        "name": "resourceType",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "页码，默认 1",
-                        "name": "page",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "每页条数，默认 20，最多 100",
-                        "name": "pageSize",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_payload_StatisticsRankingResp"
                         }
                     }
                 }
@@ -11657,7 +12042,7 @@
                         "Bearer": []
                     }
                 ],
-                "description": "按作业名称查询作业详情和锁定状态",
+                "description": "调用k8s get crd",
                 "consumes": [
                     "application/json"
                 ],
@@ -11667,7 +12052,7 @@
                 "tags": [
                     "VolcanoJob"
                 ],
-                "summary": "获取作业详情",
+                "summary": "获取jupyter详情",
                 "parameters": [
                     {
                         "type": "string",
@@ -11679,7 +12064,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "作业详情（含 locked、permanentLocked 和 lockedTimestamp）",
+                        "description": "任务描述",
                         "schema": {
                             "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Response-any"
                         }
@@ -12178,6 +12563,9 @@
         "datatypes.JSONType-array_string": {
             "type": "object"
         },
+        "datatypes.JSONType-github_com_raids-lab_crater_dao_model_ExtraContent": {
+            "type": "object"
+        },
         "datatypes.JSONType-github_com_raids-lab_crater_dao_model_QueueQuota": {
             "type": "object"
         },
@@ -12399,6 +12787,54 @@
                 "CronJobConfigStatusRunning"
             ]
         },
+        "github_com_raids-lab_crater_dao_model.CronJobRecord": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "deletedAt": {
+                    "$ref": "#/definitions/gorm.DeletedAt"
+                },
+                "executeTime": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "jobData": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "message": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.CronJobRecordStatus"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_dao_model.CronJobRecordStatus": {
+            "type": "string",
+            "enum": [
+                "unknown",
+                "success",
+                "failed"
+            ],
+            "x-enum-varnames": [
+                "CronJobRecordStatusUnknown",
+                "CronJobRecordStatusSuccess",
+                "CronJobRecordStatusFailed"
+            ]
+        },
         "github_com_raids-lab_crater_dao_model.CronJobType": {
             "type": "string",
             "enum": [
@@ -12488,6 +12924,44 @@
                 }
             }
         },
+        "github_com_raids-lab_crater_dao_model.ImageShareType": {
+            "type": "string",
+            "enum": [
+                "Private",
+                "Public",
+                "UserShare",
+                "AccountShare"
+            ],
+            "x-enum-varnames": [
+                "Private",
+                "Public",
+                "UserShare",
+                "AccountShare"
+            ]
+        },
+        "github_com_raids-lab_crater_dao_model.ImageSourceType": {
+            "type": "integer",
+            "format": "int32",
+            "enum": [
+                0,
+                1,
+                2
+            ],
+            "x-enum-comments": {
+                "ImageCreateType": "镜像制造",
+                "ImageUploadType": "镜像上传"
+            },
+            "x-enum-descriptions": [
+                "",
+                "镜像制造",
+                "镜像上传"
+            ],
+            "x-enum-varnames": [
+                "_",
+                "ImageCreateType",
+                "ImageUploadType"
+            ]
+        },
         "github_com_raids-lab_crater_dao_model.JobType": {
             "type": "string",
             "enum": [
@@ -12514,6 +12988,20 @@
                 "JobTypeCustom",
                 "JobTypeTensorboard"
             ]
+        },
+        "github_com_raids-lab_crater_dao_model.QueueQuota": {
+            "type": "object",
+            "properties": {
+                "capability": {
+                    "$ref": "#/definitions/v1.ResourceList"
+                },
+                "deserved": {
+                    "$ref": "#/definitions/v1.ResourceList"
+                },
+                "guaranteed": {
+                    "$ref": "#/definitions/v1.ResourceList"
+                }
+            }
         },
         "github_com_raids-lab_crater_dao_model.ReviewStatus": {
             "type": "integer",
@@ -12767,169 +13255,27 @@
                 }
             }
         },
-        "github_com_raids-lab_crater_internal_payload.Order": {
-            "type": "string",
-            "enum": [
-                "asc",
-                "desc"
-            ],
-            "x-enum-varnames": [
-                "Asc",
-                "Desc"
-            ]
-        },
         "github_com_raids-lab_crater_internal_payload.ResourceDetail": {
             "type": "object",
             "properties": {
-                "coverage": {
-                    "description": "评估覆盖率",
-                    "type": "number",
-                    "x-nullable": true
-                },
-                "effectiveUsage": {
-                    "description": "估算有效用量 (核时/卡时/GiB时)",
-                    "type": "number"
-                },
                 "label": {
                     "description": "显示名称 (例如 \"NVIDIA V100\", \"CPU\", \"内存\")",
                     "type": "string"
-                },
-                "profiledUsage": {
-                    "description": "有监控摘要的分配用量 (核时/卡时/GiB时)",
-                    "type": "number"
                 },
                 "type": {
                     "description": "资源类型 (gpu, vgpu, rdma, common)",
                     "type": "string"
                 },
                 "usage": {
-                    "description": "分配用量 (核时/卡时/GiB时)",
+                    "description": "用量 (核时/卡时/GiB时)",
                     "type": "number"
-                },
-                "utilization": {
-                    "description": "加权平均利用率",
-                    "type": "number",
-                    "x-nullable": true
-                }
-            }
-        },
-        "github_com_raids-lab_crater_internal_payload.StatisticsProgress": {
-            "type": "object",
-            "properties": {
-                "backfillComplete": {
-                    "description": "历史回填是否全部完成",
-                    "type": "boolean"
-                },
-                "completeBefore": {
-                    "description": "该日期之前均已完成 (YYYY-MM-DD)",
-                    "type": "string"
-                },
-                "coveredUntil": {
-                    "description": "统计数据覆盖截止时间",
-                    "type": "string",
-                    "format": "date-time",
-                    "x-nullable": true
-                },
-                "firstDate": {
-                    "description": "最早统计日期 (YYYY-MM-DD)",
-                    "type": "string"
-                },
-                "pendingDays": {
-                    "description": "待补算天数",
-                    "type": "integer"
-                },
-                "ready": {
-                    "description": "是否已完成至少一轮可用统计",
-                    "type": "boolean"
-                },
-                "updatedAt": {
-                    "description": "最近更新时间",
-                    "type": "string",
-                    "format": "date-time",
-                    "x-nullable": true
-                }
-            }
-        },
-        "github_com_raids-lab_crater_internal_payload.StatisticsRankingResp": {
-            "type": "object",
-            "properties": {
-                "progress": {
-                    "description": "统计聚合进度",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_payload.StatisticsProgress"
-                        }
-                    ]
-                },
-                "rows": {
-                    "description": "排行列表",
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_raids-lab_crater_internal_payload.StatisticsRankingRow"
-                    }
-                },
-                "total": {
-                    "description": "总条数",
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_raids-lab_crater_internal_payload.StatisticsRankingRow": {
-            "type": "object",
-            "properties": {
-                "coverage": {
-                    "description": "评估覆盖率",
-                    "type": "number",
-                    "x-nullable": true
-                },
-                "effectiveUsage": {
-                    "description": "估算有效用量",
-                    "type": "number"
-                },
-                "id": {
-                    "description": "用户ID或账户ID",
-                    "type": "integer"
-                },
-                "name": {
-                    "description": "用户名或账户名",
-                    "type": "string"
-                },
-                "nickname": {
-                    "description": "昵称",
-                    "type": "string"
-                },
-                "profiledUsage": {
-                    "description": "已评估分配用量",
-                    "type": "number"
-                },
-                "rank": {
-                    "description": "名次",
-                    "type": "integer"
-                },
-                "usage": {
-                    "description": "分配用量",
-                    "type": "number"
-                },
-                "utilization": {
-                    "description": "加权平均利用率",
-                    "type": "number",
-                    "x-nullable": true
                 }
             }
         },
         "github_com_raids-lab_crater_internal_payload.StatisticsResp": {
             "type": "object",
             "properties": {
-                "progress": {
-                    "description": "统计聚合进度",
-                    "allOf": [
-                        {
-                            "$ref": "#/definitions/github_com_raids-lab_crater_internal_payload.StatisticsProgress"
-                        }
-                    ]
-                },
                 "series": {
-                    "description": "时间序列数据",
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/github_com_raids-lab_crater_internal_payload.TimePointData"
@@ -13035,30 +13381,11 @@
         "github_com_raids-lab_crater_internal_payload.TimePointData": {
             "type": "object",
             "properties": {
-                "effectiveUsage": {
-                    "description": "估算有效用量 (Key: ResourceName)",
-                    "type": "object",
-                    "additionalProperties": {
-                        "type": "number",
-                        "format": "float64"
-                    }
-                },
-                "status": {
-                    "description": "统计完成状态 (complete/partial/pending)",
-                    "type": "string",
-                    "enum": [
-                        "complete",
-                        "partial",
-                        "pending"
-                    ]
-                },
                 "timestamp": {
-                    "description": "时间桶起始时间 (UTC)",
-                    "type": "string",
-                    "format": "date-time"
+                    "type": "string"
                 },
                 "usage": {
-                    "description": "分配用量 (Key: ResourceName)",
+                    "description": "Key: ResourceName, Value: Usage",
                     "type": "object",
                     "additionalProperties": {
                         "type": "number",
@@ -13092,7 +13419,187 @@
                 }
             }
         },
-        "github_com_raids-lab_crater_internal_resputil.List-internal_handler_operations_OperationLogResp": {
+        "github_com_raids-lab_crater_internal_resputil.Page-github_com_raids-lab_crater_dao_model_CronJobRecord": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.CronJobRecord"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ApprovalOrderResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.ApprovalOrderResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_DatasetResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.DatasetResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_JobTemplateresp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.JobTemplateresp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ListAllResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.ListAllResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserProjectGetResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.UserProjectGetResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserResp": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler.UserResp"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_ImageInfo": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler_image.ImageInfo"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_KanikoInfo": {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/internal_handler_image.KanikoInfo"
+                    }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Page-internal_handler_operations_OperationLogResp": {
             "type": "object",
             "properties": {
                 "items": {
@@ -13100,6 +13607,12 @@
                     "items": {
                         "$ref": "#/definitions/internal_handler_operations.OperationLogResp"
                     }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
                 },
                 "total": {
                     "type": "integer"
@@ -13265,7 +13778,7 @@
                 }
             }
         },
-        "github_com_raids-lab_crater_internal_resputil.Response-array_internal_handler_ModelDownloadResp": {
+        "github_com_raids-lab_crater_internal_resputil.Response-array_internal_handler_UserOfDatasetResp": {
             "type": "object",
             "properties": {
                 "code": {
@@ -13275,25 +13788,7 @@
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_handler.ModelDownloadResp"
-                    }
-                },
-                "msg": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_raids-lab_crater_internal_resputil.Response-array_internal_handler_UserResp": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "description": "依然保持 int (ErrorCode) 类型",
-                    "type": "integer"
-                },
-                "data": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/internal_handler.UserResp"
+                        "$ref": "#/definitions/internal_handler.UserOfDatasetResp"
                     }
                 },
                 "msg": {
@@ -13325,21 +13820,6 @@
                 },
                 "data": {
                     "$ref": "#/definitions/github_com_raids-lab_crater_internal_payload.CreateTensorboardResp"
-                },
-                "msg": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_payload_StatisticsRankingResp": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "description": "依然保持 int (ErrorCode) 类型",
-                    "type": "integer"
-                },
-                "data": {
-                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_payload.StatisticsRankingResp"
                 },
                 "msg": {
                     "type": "string"
@@ -13391,7 +13871,7 @@
                 }
             }
         },
-        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_List-internal_handler_operations_OperationLogResp": {
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-github_com_raids-lab_crater_dao_model_CronJobRecord": {
             "type": "object",
             "properties": {
                 "code": {
@@ -13399,7 +13879,142 @@
                     "type": "integer"
                 },
                 "data": {
-                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.List-internal_handler_operations_OperationLogResp"
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-github_com_raids-lab_crater_dao_model_CronJobRecord"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ApprovalOrderResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ApprovalOrderResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_DatasetResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_DatasetResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_JobTemplateresp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_JobTemplateresp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_ListAllResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_ListAllResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_UserProjectGetResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserProjectGetResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_UserResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_UserResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_ImageInfo": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_ImageInfo"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_image_KanikoInfo": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_image_KanikoInfo"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-github_com_raids-lab_crater_internal_resputil_Page-internal_handler_operations_OperationLogResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_internal_resputil.Page-internal_handler_operations_OperationLogResp"
                 },
                 "msg": {
                     "type": "string"
@@ -13550,6 +14165,21 @@
                 },
                 "data": {
                     "$ref": "#/definitions/internal_handler.ApprovalOrderResp"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-internal_handler_ApprovalOrderSummaryResp": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_handler.ApprovalOrderSummaryResp"
                 },
                 "msg": {
                     "type": "string"
@@ -13991,6 +14621,21 @@
                 }
             }
         },
+        "github_com_raids-lab_crater_internal_resputil.Response-internal_handler_operations_legacyCronJobRecordsResponse": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/internal_handler_operations.legacyCronJobRecordsResponse"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
         "github_com_raids-lab_crater_internal_resputil.Response-internal_handler_personalLLMConfigResp": {
             "type": "object",
             "properties": {
@@ -14090,6 +14735,21 @@
                 },
                 "data": {
                     "$ref": "#/definitions/internal_handler_vcjob.SSHInfo"
+                },
+                "msg": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_raids-lab_crater_internal_resputil.Response-map_string_int64": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "description": "依然保持 int (ErrorCode) 类型",
+                    "type": "integer"
+                },
+                "data": {
+                    "$ref": "#/definitions/map_string_int64"
                 },
                 "msg": {
                     "type": "string"
@@ -14366,9 +15026,6 @@
                 "containerRuntimeVersion": {
                     "type": "string"
                 },
-                "cpuModel": {
-                    "type": "string"
-                },
                 "gpuArch": {
                     "type": "string"
                 },
@@ -14529,13 +15186,6 @@
                 "ip": {
                     "type": "string"
                 },
-                "jobName": {
-                    "description": "The admin endpoint populates these fields when the Pod matches a Crater job.",
-                    "type": "string"
-                },
-                "jobStatus": {
-                    "$ref": "#/definitions/volcano_sh_apis_pkg_apis_batch_v1alpha1.JobPhase"
-                },
                 "locked": {
                     "type": "boolean"
                 },
@@ -14584,7 +15234,7 @@
                     "type": "integer"
                 },
                 "userName": {
-                    "description": "用户昵称（用于显示）",
+                    "description": "管理员接口返回的字段（omitempty 表示字段为空时不序列化）",
                     "type": "string"
                 },
                 "userRealName": {
@@ -14834,6 +15484,23 @@
                 }
             }
         },
+        "internal_handler.ApprovalOrderSummaryResp": {
+            "type": "object",
+            "properties": {
+                "pendingDataset": {
+                    "type": "integer"
+                },
+                "pendingJobDelay": {
+                    "type": "integer"
+                },
+                "totalPending": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "internal_handler.ApprovalOrderreq": {
             "type": "object",
             "required": [
@@ -15040,6 +15707,95 @@
                 },
                 "weburl": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler.DatasetResp": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "describe": {
+                    "type": "string"
+                },
+                "displayName": {
+                    "type": "string"
+                },
+                "downloadCount": {
+                    "type": "integer"
+                },
+                "extra": {
+                    "$ref": "#/definitions/datatypes.JSONType-github_com_raids-lab_crater_dao_model_ExtraContent"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "library": {
+                    "type": "string"
+                },
+                "license": {
+                    "type": "string"
+                },
+                "likes": {
+                    "type": "integer"
+                },
+                "loginRequired": {
+                    "type": "boolean"
+                },
+                "modelType": {
+                    "type": "string"
+                },
+                "mountCount": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "organization": {
+                    "type": "string"
+                },
+                "organizationUrl": {
+                    "type": "string"
+                },
+                "parameterCount": {
+                    "type": "integer"
+                },
+                "readme": {
+                    "type": "string"
+                },
+                "sizeBytes": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "sourceCreatedAt": {
+                    "type": "string"
+                },
+                "sourceGated": {
+                    "type": "boolean"
+                },
+                "sourcePrivate": {
+                    "type": "boolean"
+                },
+                "sourceUpdatedAt": {
+                    "type": "string"
+                },
+                "task": {
+                    "type": "string"
+                },
+                "type": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.DataType"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.UserInfo"
                 }
             }
         },
@@ -15256,6 +16012,32 @@
                 }
             }
         },
+        "internal_handler.JobTemplateresp": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "describe": {
+                    "type": "string"
+                },
+                "document": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "template": {
+                    "type": "string"
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.UserInfo"
+                }
+            }
+        },
         "internal_handler.LLMConfigResp": {
             "type": "object",
             "properties": {
@@ -15298,6 +16080,29 @@
             "properties": {
                 "rdmaId": {
                     "type": "integer"
+                }
+            }
+        },
+        "internal_handler.ListAllResp": {
+            "type": "object",
+            "properties": {
+                "expiredAt": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "nickname": {
+                    "type": "string"
+                },
+                "quota": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.QueueQuota"
+                },
+                "space": {
+                    "type": "string"
                 }
             }
         },
@@ -15374,6 +16179,12 @@
                     "items": {
                         "$ref": "#/definitions/internal_handler.ModelDownloadResp"
                     }
+                },
+                "page": {
+                    "type": "integer"
+                },
+                "page_size": {
+                    "type": "integer"
                 },
                 "summary": {
                     "type": "object",
@@ -16287,6 +17098,46 @@
                 }
             }
         },
+        "internal_handler.UserOfDatasetResp": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "isowner": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/datatypes.JSONType-github_com_raids-lab_crater_dao_model_UserAttribute"
+                }
+            }
+        },
+        "internal_handler.UserProjectGetResp": {
+            "type": "object",
+            "properties": {
+                "accessmode": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "quota": {
+                    "$ref": "#/definitions/datatypes.JSONType-github_com_raids-lab_crater_dao_model_QueueQuota"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/datatypes.JSONType-github_com_raids-lab_crater_dao_model_UserAttribute"
+                }
+            }
+        },
         "internal_handler.UserPutUserInProjectReq": {
             "type": "object",
             "properties": {
@@ -16915,6 +17766,100 @@
                 }
             }
         },
+        "internal_handler_image.ImageInfo": {
+            "type": "object",
+            "properties": {
+                "ID": {
+                    "type": "integer"
+                },
+                "archs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "imageBuildID": {
+                    "type": "integer"
+                },
+                "imageBuildSource": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.ImageSourceType"
+                },
+                "imageLink": {
+                    "type": "string"
+                },
+                "imageShareStatus": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.ImageShareType"
+                },
+                "imagepackName": {
+                    "type": "string"
+                },
+                "isPublic": {
+                    "type": "boolean"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "taskType": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.JobType"
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.UserInfo"
+                }
+            }
+        },
+        "internal_handler_image.KanikoInfo": {
+            "type": "object",
+            "properties": {
+                "ID": {
+                    "type": "integer"
+                },
+                "archs": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "buildSource": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.BuildSource"
+                },
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "imageLink": {
+                    "type": "string"
+                },
+                "imagepackName": {
+                    "type": "string"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "status": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.BuildStatus"
+                },
+                "tags": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userInfo": {
+                    "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.UserInfo"
+                }
+            }
+        },
         "internal_handler_image.UpdateImageArchRequest": {
             "type": "object",
             "required": [
@@ -17013,6 +17958,37 @@
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "internal_handler_operations.legacyCronJobRecordsRequest": {
+            "type": "object",
+            "properties": {
+                "endTime": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "startTime": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_handler_operations.legacyCronJobRecordsResponse": {
+            "type": "object",
+            "properties": {
+                "records": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_raids-lab_crater_dao_model.CronJobRecord"
+                    }
                 }
             }
         },
@@ -17602,6 +18578,13 @@
                 "workingDir": {
                     "type": "string"
                 }
+            }
+        },
+        "map_string_int64": {
+            "type": "object",
+            "additionalProperties": {
+                "type": "integer",
+                "format": "int64"
             }
         },
         "map_string_string": {

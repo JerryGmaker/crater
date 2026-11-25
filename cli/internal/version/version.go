@@ -21,10 +21,12 @@ import (
 )
 
 const (
-	// v9 adds the optional CPU model to node details.
+	// v8 adds the atomic approval and lock operation for job orders.
+	// v9 consolidates optionally paginated database lists with legacy complete reads.
 	APIVersion = 9
-	// Job order approval requires the v8 approve-and-lock endpoint.
-	MinSupportedBackendAPIVersion    = 8
+	// Job order approval requires the v8 approve-and-lock endpoint, and the
+	// unified list pagination contract requires v9.
+	MinSupportedBackendAPIVersion    = 9
 	APIVersionHeader                 = "X-Crater-API-Version"
 	defaultDevelopmentProductVersion = "dev"
 	defaultDevelopmentBuildType      = "development"

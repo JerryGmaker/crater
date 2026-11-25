@@ -13,17 +13,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/datatypes"
 	"gorm.io/gen/field"
+	"k8s.io/klog/v2"
 
 	"github.com/raids-lab/crater/dao/model"
 	"github.com/raids-lab/crater/dao/query"
 	"github.com/raids-lab/crater/internal/bizerr"
 	"github.com/raids-lab/crater/internal/governance/modeldataset"
+	"github.com/raids-lab/crater/internal/pagination"
 	"github.com/raids-lab/crater/internal/resputil"
+	datasetservice "github.com/raids-lab/crater/internal/service/dataset"
 	"github.com/raids-lab/crater/internal/util"
 	"github.com/raids-lab/crater/pkg/config"
 )
 
 const autoDownloadTag = "auto-download"
+const datasetMaxSearchRunes = 128
 
 //nolint:gochecknoinits // This is the standard way to register a gin handler.
 func init() {
@@ -142,35 +146,84 @@ type DatasetResp struct {
 	UserInfo        model.UserInfo                         `json:"userInfo"`
 }
 
-// GetDatasets godoc
-//
-//	@Summary		获取数据集
-//	@Description	获取数据集
-//	@Tags			Dataset
-//	@Accept			json
-//	@Produce		json
-//	@Security		Bearer
-//	@Success		200	{object}	resputil.Response[any]	"成功返回值描述"
-//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
-//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
-//	@Router			/v1/dataset/mydataset [get]
-func (mgr *DatasetMgr) GetDatasets(c *gin.Context) {
-	token := util.GetToken(c)
-	d := query.Dataset
-	datasets, err := sharedDatasets(c, token).
-		Preload(d.User).
-		Order(d.UpdatedAt.Desc()).
-		Find()
+type datasetListPageQuery struct {
+	Page     int            `form:"page,default=1" binding:"min=1"`
+	PageSize int            `form:"page_size,default=10" binding:"min=1,max=200"`
+	Search   string         `form:"search"`
+	Owner    string         `form:"owner,default=all" binding:"oneof=all mine others"`
+	Sort     string         `form:"sort,default=-createdAt" binding:"oneof=createdAt -createdAt updatedAt -updatedAt mountCount -mountCount"`
+	Type     model.DataType `form:"type" binding:"omitempty,oneof=dataset model sharefile"`
+}
+
+func bindDatasetListPageQuery(c *gin.Context) (datasetListPageQuery, error) {
+	var request datasetListPageQuery
+	if err := c.ShouldBindQuery(&request); err != nil {
+		return datasetListPageQuery{}, bizerr.BadRequest.ParameterError.Wrap(
+			err,
+			"invalid dataset list query",
+		)
+	}
+	var err error
+	request.Search, err = pagination.NormalizePageQuery(request.Search, request.Page, request.PageSize)
 	if err != nil {
-		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "get datasets failed"))
+		return datasetListPageQuery{}, err
+	}
+	return request, nil
+}
+
+// GetDatasets serves management tables and complete-list consumers through one paginated endpoint.
+//
+//	@Summary	获取可访问数据资源分页
+//	@Description	按权限、类型、搜索和排序条件过滤后分页返回数据资源
+//	@Description	Supplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.
+//	@Tags		Dataset
+//	@Produce	json
+//	@Security	Bearer
+//	@Param		page		query	int		false	"Page number"
+//	@Param		page_size	query	int		false	"Page size, 1-200"
+//	@Param		search		query	string		false	"Search name or description"
+//	@Param		owner		query	string		false	"Owner scope: all, mine, or others"
+//	@Param		sort		query	string		false	"Sort by createdAt, updatedAt, or mountCount"
+//	@Param		type		query	string		false	"Resource type: dataset, model, or sharefile"
+//	@Success	200	{object}	resputil.Response[resputil.Page[DatasetResp]]
+//	@Failure	400	{object}	resputil.Response[any]
+//	@Failure	500	{object}	resputil.Response[any]
+//	@Router		/v1/dataset/mydataset [get]
+func (mgr *DatasetMgr) GetDatasets(c *gin.Context) {
+	request, err := bindDatasetListPageQuery(c)
+	if err != nil {
+		resputil.HandleError(c, err)
+		return
+	}
+
+	token := util.GetToken(c)
+	scope := sharedDatasets(c, token).UnderlyingDB().Model(&model.Dataset{})
+	offset, limit := pagination.Bounds(c.Request.URL.Query(), request.Page, request.PageSize)
+	datasets, total, err := datasetservice.List(c, &datasetservice.ListOptions{
+		Scope:  scope,
+		Offset: offset,
+		Limit:  limit,
+		Search: request.Search,
+		Owner:  request.Owner,
+		Sort:   request.Sort,
+		Type:   request.Type,
+		UserID: token.UserID,
+	})
+	if err != nil {
+		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "list datasets failed"))
 		return
 	}
 	result, err := convertDatasetBatch(c, datasets)
 	if err != nil {
-		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "get datasets failed"))
+		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "enrich datasets failed"))
 		return
 	}
-	resputil.Success(c, result)
+
+	if !pagination.Requested(c.Request.URL.Query()) {
+		resputil.Success(c, result)
+		return
+	}
+	resputil.Success(c, resputil.NewPage(result, total, request.Page, request.PageSize))
 }
 
 // 函数名称 GetDatasetByID
@@ -201,33 +254,6 @@ func (mgr *DatasetMgr) GetDatasetByID(c *gin.Context) {
 	res := convertDataset(c, dataset)
 	var result []DatasetResp
 	result = append(result, res)
-	resputil.Success(c, result)
-}
-
-// GetAllDataset godoc
-//
-//	@Summary		获取所有数据集
-//	@Description	获取所有数据集
-//	@Tags			Dataset
-//	@Accept			json
-//	@Produce		json
-//	@Security		Bearer
-//	@Success		200	{object}	resputil.Response[any]	"成功返回值描述"
-//	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
-//	@Failure		500	{object}	resputil.Response[any]	"Other errors"
-//	@Router			/v1/admin/dataset/alldataset [get]
-func (mgr *DatasetMgr) GetAllDataset(c *gin.Context) {
-	d := query.Dataset
-	datasets, err := d.WithContext(c).Preload(d.User).Where(d.ID.IsNotNull()).Order(d.UpdatedAt.Desc()).Find()
-	if err != nil {
-		resputil.Error(c, "Can't get datasets", resputil.NotSpecified)
-		return
-	}
-	result, err := convertDatasetBatch(c, datasets)
-	if err != nil {
-		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "enrich datasets failed"))
-		return
-	}
 	resputil.Success(c, result)
 }
 
@@ -945,7 +971,7 @@ type UserOfDatasetResp struct {
 //	@Produce		json
 //	@Security		Bearer
 //	@Param			req	path		DatasetGetReq			true	"数据集ID"
-//	@Success		200	{object}	resputil.Response[any]	"成功返回值描述"
+//	@Success		200	{object}	resputil.Response[[]UserOfDatasetResp]	"Shared users"
 //	@Failure		400	{object}	resputil.Response[any]	"Request parameter error"
 //	@Failure		500	{object}	resputil.Response[any]	"Other errors"
 //	@Router			/v1/dataset/{datasetId}/usersIn [get]
@@ -956,34 +982,27 @@ func (mgr *DatasetMgr) ListUserOfDataset(c *gin.Context) {
 		return
 	}
 	d := query.Dataset
-	u := query.User
-	ud := query.UserDataset
 	dataset, err := d.WithContext(c).Where(d.ID.Eq(req.DatasetID)).First()
 	if err != nil {
 		resputil.Error(c, "this dataset not exist", resputil.InvalidRequest)
 		return
 	}
-	var uids []uint
-	if err := ud.WithContext(c).Select(ud.UserID).Where(ud.DatasetID.Eq(dataset.ID)).Distinct().Scan(&uids); err != nil {
-		resputil.Error(c, fmt.Sprintf("Failed to scan user IDs: %v", err), resputil.NotSpecified)
+	u, ud := query.User, query.UserDataset
+	db := u.WithContext(c).Join(ud, ud.UserID.EqCol(u.ID)).
+		Where(ud.DatasetID.Eq(dataset.ID), ud.DeletedAt.IsNull(), u.DeletedAt.IsNull())
+	resp := make([]UserOfDatasetResp, 0)
+	err = db.
+		Distinct().
+		Select(u.ID, u.Name, u.Attributes.As("user_info")).
+		Order(u.ID.Asc()).
+		Scan(&resp)
+	if err != nil {
+		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "failed to get dataset shared users"))
 		return
 	}
-
-	var resp []UserOfDatasetResp
-	for i := range uids {
-		user, err := u.WithContext(c).Where(u.ID.Eq(uids[i])).First()
-		if err != nil {
-			resputil.Error(c, fmt.Sprintf("Can't find user :%v", err), resputil.InvalidRequest)
-		}
-		res := UserOfDatasetResp{
-			ID:       uids[i],
-			IsOwner:  uids[i] == dataset.UserID,
-			Name:     user.Name,
-			UserInfo: user.Attributes,
-		}
-		resp = append(resp, res)
+	for i := range resp {
+		resp[i].IsOwner = resp[i].ID == dataset.UserID
 	}
-
 	resputil.Success(c, resp)
 }
 
@@ -1407,4 +1426,124 @@ func enrichDatasetResp(resp *DatasetResp, download *model.ModelDownload, logoSou
 	if download.SourceUpdatedAt != nil {
 		resp.SourceUpdatedAt = download.SourceUpdatedAt
 	}
+}
+
+type adminDatasetListPageQuery struct {
+	Page     int    `form:"page,default=1" binding:"min=1"`
+	PageSize int    `form:"page_size,default=10" binding:"min=1,max=200"`
+	Search   string `form:"search"`
+	Sort     string `form:"sort"`
+}
+
+var adminDatasetTypes = map[string]struct{}{
+	string(model.DataTypeDataset):   {},
+	string(model.DataTypeModel):     {},
+	string(model.DataTypeShareFile): {},
+}
+
+var adminDatasetSortFields = map[string]string{
+	"name":       "name",
+	"type":       "type",
+	"createdAt":  "created_at",
+	"updatedAt":  "updated_at",
+	"mountCount": "mount_count",
+}
+
+func bindAdminDatasetListPageQuery(c *gin.Context) (adminDatasetListPageQuery, []string, error) {
+	var request adminDatasetListPageQuery
+	if err := c.ShouldBindQuery(&request); err != nil {
+		return adminDatasetListPageQuery{}, nil, bizerr.BadRequest.ParameterError.Wrap(err, "invalid admin dataset list query")
+	}
+	var err error
+	request.Search, err = pagination.NormalizePageQuery(request.Search, request.Page, request.PageSize)
+	if err != nil {
+		return adminDatasetListPageQuery{}, nil, err
+	}
+
+	types := c.QueryArray("type")
+	seenTypes := make(map[string]struct{}, len(types))
+	validTypes := make([]string, 0, len(types))
+	for _, value := range types {
+		if _, ok := adminDatasetTypes[value]; !ok {
+			return adminDatasetListPageQuery{}, nil, bizerr.BadRequest.ParameterError.New(fmt.Sprintf("unsupported dataset type %q", value))
+		}
+		if _, seen := seenTypes[value]; seen {
+			continue
+		}
+		seenTypes[value] = struct{}{}
+		validTypes = append(validTypes, value)
+	}
+
+	request.Sort, err = pagination.DefaultAndValidateSort(request.Sort, "-updatedAt", adminDatasetSortFields)
+	if err != nil {
+		return adminDatasetListPageQuery{}, nil, err
+	}
+	return request, validTypes, nil
+}
+
+func adminDatasetSortClauses(sortValue string) []string {
+	return pagination.SortClauses(sortValue, adminDatasetSortFields, "id DESC")
+}
+
+// GetAllDataset returns all datasets visible to administrators in the shared page shape.
+//
+//	@Summary	管理员分页获取所有数据资源
+//	@Description	按类型、搜索和排序条件过滤后分页返回数据资源
+//	@Description	Supplying page or page_size returns a page; omitting both preserves the complete legacy array on the same route.
+//	@Tags		Dataset
+//	@Produce	json
+//	@Security	Bearer
+//	@Param		page		query	int		false	"Page number"
+//	@Param		page_size	query	int		false	"Page size, 1-200"
+//	@Param		search		query	string	false	"Search name or description"
+//	@Param		type		query	string	false	"Filter by type; repeatable"
+//	@Param		sort		query	string	false	"Sort fields"
+//	@Success	200	{object}	resputil.Response[resputil.Page[DatasetResp]]
+//	@Failure	400	{object}	resputil.Response[any]
+//	@Failure	500	{object}	resputil.Response[any]
+//	@Router		/v1/admin/dataset/alldataset [get]
+func (mgr *DatasetMgr) GetAllDataset(c *gin.Context) {
+	request, types, err := bindAdminDatasetListPageQuery(c)
+	if err != nil {
+		resputil.HandleError(c, err)
+		return
+	}
+
+	db := datasetservice.CanonicalListScope(query.Dataset.WithContext(c).UnderlyingDB().Model(&model.Dataset{}))
+	if len(types) > 0 {
+		db = db.Where("type IN ?", types)
+	}
+	if request.Search != "" {
+		pattern := util.ContainsPattern(request.Search)
+		db = db.Where("(LOWER(name) LIKE ? ESCAPE '\\' OR LOWER(describe) LIKE ? ESCAPE '\\')", pattern, pattern)
+	}
+	for _, clause := range adminDatasetSortClauses(request.Sort) {
+		db = db.Order(clause)
+	}
+
+	var total int64
+	if err := db.Count(&total).Error; err != nil {
+		klog.Errorf("failed to count admin datasets: %v", err)
+		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "count admin datasets failed"))
+		return
+	}
+
+	datasets := make([]*model.Dataset, 0)
+	offset, limit := pagination.Bounds(c.Request.URL.Query(), request.Page, request.PageSize)
+	if err := db.Preload("User").Offset(offset).Limit(limit).Find(&datasets).Error; err != nil {
+		klog.Errorf("failed to list admin datasets: %v", err)
+		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "list admin datasets failed"))
+		return
+	}
+
+	result, err := convertDatasetBatch(c, datasets)
+	if err != nil {
+		resputil.HandleError(c, bizerr.Internal.DatabaseError.Wrap(err, "enrich admin datasets failed"))
+		return
+	}
+	if !pagination.Requested(c.Request.URL.Query()) {
+		resputil.Success(c, result)
+		return
+	}
+	resputil.Success(c, resputil.NewPage(result, total, request.Page, request.PageSize))
 }

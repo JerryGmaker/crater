@@ -153,9 +153,45 @@ func TestFileContractCompatibility(t *testing.T) {
 	}
 }
 
+func TestUserContainerPermissionContractCompatibility(t *testing.T) {
+	if APIVersion < 6 || MinSupportedBackendAPIVersion < 8 {
+		t.Fatalf("user container permission contract = %d, minimum backend = %d, want >=6/>=8",
+			APIVersion, MinSupportedBackendAPIVersion)
+	}
+	for _, backendVersion := range []int{3, 4, 5} {
+		if got := EvaluateCompatibility(backendVersion, 3); got != CompatibilityBackendTooOld {
+			t.Fatalf("backend API %d with minimum CLI 3: got %s, want backend too old", backendVersion, got)
+		}
+	}
+}
+
+func TestTensorboardLogDirContractCompatibility(t *testing.T) {
+	if APIVersion < 5 || MinSupportedBackendAPIVersion < 8 {
+		t.Fatalf("TensorBoard log directory contract = %d, minimum backend = %d, want >=5/>=8",
+			APIVersion, MinSupportedBackendAPIVersion)
+	}
+	for _, backendVersion := range []int{3, 4, 5} {
+		if got := EvaluateCompatibility(backendVersion, 3); got != CompatibilityBackendTooOld {
+			t.Fatalf("backend API %d with minimum CLI 3: got %s, want backend too old", backendVersion, got)
+		}
+	}
+}
+
+func TestJobExecContractCompatibility(t *testing.T) {
+	if APIVersion < 7 || MinSupportedBackendAPIVersion < 7 {
+		t.Fatalf("job exec requires contract 7: CLI=%d minimum=%d", APIVersion, MinSupportedBackendAPIVersion)
+	}
+	if got := EvaluateCompatibility(6, 3); got != CompatibilityBackendTooOld {
+		t.Fatalf("backend API 6: got %s, want %s", got, CompatibilityBackendTooOld)
+	}
+	if got := EvaluateCompatibility(MinSupportedBackendAPIVersion, 3); got != CompatibilityCompatible {
+		t.Fatalf("current required backend: got %s, want %s", got, CompatibilityCompatible)
+	}
+}
+
 func TestAtomicJobApprovalContractCompatibility(t *testing.T) {
-	if APIVersion < 8 || MinSupportedBackendAPIVersion != 8 {
-		t.Fatalf("atomic job approval contract = %d, minimum backend = %d, want >=8/8",
+	if APIVersion < 8 || MinSupportedBackendAPIVersion < 8 {
+		t.Fatalf("atomic job approval contract = %d, minimum backend = %d, want >=8/>=8",
 			APIVersion, MinSupportedBackendAPIVersion)
 	}
 	if got := EvaluateCompatibility(7, 3); got != CompatibilityBackendTooOld {
@@ -164,7 +200,21 @@ func TestAtomicJobApprovalContractCompatibility(t *testing.T) {
 	if got := evaluateCompatibility(7, 7, 8, 8); got != CompatibilityCLITooOld {
 		t.Fatalf("CLI with split job approval: got %s, want %s", got, CompatibilityCLITooOld)
 	}
-	if got := EvaluateCompatibility(8, 8); got != CompatibilityCompatible {
+	if got := EvaluateCompatibility(MinSupportedBackendAPIVersion, 8); got != CompatibilityCompatible {
 		t.Fatalf("backend with approve-and-lock: got %s, want %s", got, CompatibilityCompatible)
+	}
+}
+
+func TestUnifiedListContractCompatibility(t *testing.T) {
+	if APIVersion != 9 || MinSupportedBackendAPIVersion != 9 {
+		t.Fatalf("paginated list contract = %d, minimum backend = %d, want 9/9", APIVersion, MinSupportedBackendAPIVersion)
+	}
+	for _, backendVersion := range []int{3, 4, 5, 6, 7, 8} {
+		if got := EvaluateCompatibility(backendVersion, 3); got != CompatibilityBackendTooOld {
+			t.Fatalf("backend API %d: got %s, want backend too old", backendVersion, got)
+		}
+	}
+	if got := EvaluateCompatibility(9, 3); got != CompatibilityCompatible {
+		t.Fatalf("backend API 9: got %s, want compatible", got)
 	}
 }
