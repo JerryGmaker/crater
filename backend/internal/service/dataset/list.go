@@ -17,13 +17,19 @@ package dataset
 import (
 	"context"
 
+	"gorm.io/gorm"
+
 	"github.com/raids-lab/crater/dao/model"
 	"github.com/raids-lab/crater/dao/query"
 	"github.com/raids-lab/crater/internal/util"
 )
 
 // ListOptions contains the already validated filters for an accessible dataset query.
+// Scope must be a permission-scoped *gorm.DB over the Dataset model. It keeps the
+// access filtering as a database subquery instead of materializing every accessible
+// ID into a potentially large IN list.
 type ListOptions struct {
+	Scope         *gorm.DB
 	AccessibleIDs []uint
 	Offset        int
 	Limit         int
@@ -34,18 +40,31 @@ type ListOptions struct {
 	UserID        uint
 }
 
+func listScope(ctx context.Context, options *ListOptions) *gorm.DB {
+	if options.Scope != nil {
+		return options.Scope
+	}
+	if options.AccessibleIDs == nil {
+		return nil
+	}
+	return query.Dataset.WithContext(ctx).UnderlyingDB().Model(&model.Dataset{}).
+		Where("datasets.id IN ?", options.AccessibleIDs)
+}
+
 // List canonicalizes permission-scoped resources before display filters and pagination.
 // Sort expressions are selected by the handler's whitelist and always include ID
 // as a tie-breaker so adjacent pages remain stable when timestamps are equal.
 func List(ctx context.Context, options *ListOptions) ([]*model.Dataset, int64, error) {
-	if len(options.AccessibleIDs) == 0 {
+	if options == nil {
 		return []*model.Dataset{}, 0, nil
 	}
 
-	datasetsQuery := CanonicalListScope(
-		query.Dataset.WithContext(ctx).UnderlyingDB().Model(&model.Dataset{}).
-			Where("id IN ?", options.AccessibleIDs),
-	)
+	scope := listScope(ctx, options)
+	if scope == nil {
+		return []*model.Dataset{}, 0, nil
+	}
+
+	datasetsQuery := CanonicalListScope(scope)
 
 	if options.Type != "" {
 		datasetsQuery = datasetsQuery.Where("type = ?", options.Type)
