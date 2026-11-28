@@ -288,8 +288,8 @@ func TestDatasetListReadErrors(t *testing.T) {
 		wantCode  bizerr.BizCode
 		wantMsg   string
 	}{
-		{name: "user association", path: "/v1/dataset/mydataset", failTable: "user_datasets", wantCode: bizerr.Internal.DatabaseError, wantMsg: "get user datasets failed"},
-		{name: "account association", path: "/v1/dataset/mydataset", failTable: "account_datasets", wantCode: bizerr.Internal.DatabaseError, wantMsg: "get account datasets failed"},
+		{name: "user association scope", path: "/v1/dataset/mydataset", failTable: "user_datasets", wantCode: bizerr.Internal.DatabaseError, wantMsg: "list datasets failed"},
+		{name: "account association scope", path: "/v1/dataset/mydataset", failTable: "account_datasets", wantCode: bizerr.Internal.DatabaseError, wantMsg: "list datasets failed"},
 		{name: "dataset rows", path: "/v1/dataset/mydataset?type=dataset", failTable: "datasets", wantCode: bizerr.Internal.DatabaseError, wantMsg: "list datasets failed"},
 		{name: "admin dataset rows", path: "/v1/admin/dataset/alldataset", failTable: "datasets", wantCode: bizerr.Internal.DatabaseError, wantMsg: "count admin datasets failed"},
 	}
@@ -298,8 +298,8 @@ func TestDatasetListReadErrors(t *testing.T) {
 			router := newDatasetPageTestRouter(t, []uint{1, 3})
 			db := query.UserDataset.WithContext(t.Context()).UnderlyingDB()
 			const cause = "isolated dataset query failure"
-			if err := db.Callback().Query().Before("gorm:query").Register("test:dataset-read-failure", func(tx *gorm.DB) {
-				if tx.Statement.Table == tt.failTable {
+			if err := db.Callback().Query().After("gorm:query").Register("test:dataset-read-failure", func(tx *gorm.DB) {
+				if tx.Statement.Table == tt.failTable || strings.Contains(tx.Statement.SQL.String(), tt.failTable) {
 					_ = tx.AddError(bizerr.Internal.DatabaseError.New(cause))
 				}
 			}); err != nil {

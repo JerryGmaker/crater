@@ -17,7 +17,7 @@ package version
 const (
 	// APIVersion identifies the current backend API contract used by the CLI.
 	// v8 adds the atomic approval and lock operation for job orders.
-	// v9 consolidates optionally paginated database lists with legacy complete reads.
+	// v9 consolidates optionally paginated database lists with legacy complete reads and adds the optional node CPU model.
 	APIVersion = 9
 
 	// MinSupportedCLIAPIVersion is the oldest CLI API contract the backend supports.

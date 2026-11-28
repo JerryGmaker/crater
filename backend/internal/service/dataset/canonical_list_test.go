@@ -67,8 +67,8 @@ func TestListCanonicalizesBeforeCountAndPagination(t *testing.T) {
 	db := setupListTestDB(t)
 	createCanonicalListFixtures(t, db)
 	options := ListOptions{
-		AccessibleIDs: []uint{1, 2, 3, 4, 5, 6, 7, 8, 9},
-		Limit:         1, Type: model.DataTypeDataset, Sort: "createdAt",
+		Scope: datasetScope(t, 1, 2, 3, 4, 5, 6, 7, 8, 9),
+		Limit: 1, Type: model.DataTypeDataset, Sort: "createdAt",
 	}
 	for offset, wantID := range []uint{1, 3, 6, 7} {
 		options.Offset = offset
@@ -101,15 +101,15 @@ func TestListCanonicalFiltersAndPermissionScope(t *testing.T) {
 		{name: "duplicate owner is not counted", options: ListOptions{Owner: "others", UserID: 1, Type: model.DataTypeDataset}, wantIDs: []uint{}},
 		{name: "model remains a separate type", options: ListOptions{Type: model.DataTypeModel}, wantIDs: []uint{4}},
 		{name: "shared files are not deduplicated", options: ListOptions{Type: model.DataTypeShareFile}, wantIDs: []uint{8, 9}},
-		{name: "inaccessible lower ID cannot suppress visible rows", options: ListOptions{AccessibleIDs: []uint{3, 5}, Type: model.DataTypeModel}, wantIDs: []uint{5}},
-		{name: "unmatched download names preserve the legacy rule", options: ListOptions{AccessibleIDs: []uint{2, 3}, Type: model.DataTypeDataset}, wantIDs: []uint{2, 3}},
+		{name: "inaccessible lower ID cannot suppress visible rows", options: ListOptions{Scope: datasetScope(t, 3, 5), Type: model.DataTypeModel}, wantIDs: []uint{5}},
+		{name: "unmatched download names preserve the legacy rule", options: ListOptions{Scope: datasetScope(t, 2, 3), Type: model.DataTypeDataset}, wantIDs: []uint{2, 3}},
 		{name: "all types", options: ListOptions{}, wantIDs: []uint{1, 3, 4, 6, 7, 8, 9}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			options := tt.options
-			if options.AccessibleIDs == nil {
-				options.AccessibleIDs = []uint{1, 2, 3, 4, 5, 6, 7, 8, 9}
+			if options.Scope == nil {
+				options.Scope = datasetScope(t, 1, 2, 3, 4, 5, 6, 7, 8, 9)
 			}
 			options.Sort, options.Limit = "createdAt", 20
 			items, total, err := List(t.Context(), &options)
@@ -131,7 +131,7 @@ func TestListCanonicalizationIgnoresDeletedAndUnreadyDownloads(t *testing.T) {
 		t.Fatalf("mark download pending: %v", err)
 	}
 	items, total, err := List(t.Context(), &ListOptions{
-		AccessibleIDs: []uint{1, 2, 4, 5}, Limit: 20, Sort: "createdAt",
+		Scope: datasetScope(t, 1, 2, 4, 5), Limit: 20, Sort: "createdAt",
 	})
 	if err != nil || total != 4 || !reflect.DeepEqual(datasetIDs(items), []uint{1, 2, 4, 5}) {
 		t.Fatalf("deleted/unready downloads: total=%d ids=%v err=%v", total, datasetIDs(items), err)
@@ -145,7 +145,7 @@ func TestListCanonicalizationIgnoresDeletedDatasetRepresentative(t *testing.T) {
 		t.Fatalf("delete original model: %v", err)
 	}
 	items, total, err := List(t.Context(), &ListOptions{
-		AccessibleIDs: []uint{4, 5}, Limit: 20, Type: model.DataTypeModel, Sort: "createdAt",
+		Scope: datasetScope(t, 4, 5), Limit: 20, Type: model.DataTypeModel, Sort: "createdAt",
 	})
 	if err != nil || total != 1 || !reflect.DeepEqual(datasetIDs(items), []uint{5}) {
 		t.Fatalf("deleted representative: total=%d ids=%v err=%v", total, datasetIDs(items), err)

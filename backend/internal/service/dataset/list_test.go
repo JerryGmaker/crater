@@ -107,6 +107,12 @@ func createTestUser(t *testing.T, db *gorm.DB, id uint, name string) {
 	}
 }
 
+func datasetScope(t *testing.T, ids ...uint) *gorm.DB {
+	t.Helper()
+	return query.Dataset.WithContext(t.Context()).UnderlyingDB().Model(&model.Dataset{}).
+		Where("datasets.id IN ?", ids)
+}
+
 func TestListPaginatesAndFiltersBeforePagination(t *testing.T) {
 	db := setupListTestDB(t)
 	createTestUser(t, db, 1, "alice")
@@ -121,23 +127,23 @@ func TestListPaginatesAndFiltersBeforePagination(t *testing.T) {
 	}
 
 	firstPage, total, err := List(t.Context(), &ListOptions{
-		AccessibleIDs: []uint{1, 2, 3},
-		Offset:        0,
-		Limit:         1,
-		Search:        "测试",
-		Type:          model.DataTypeShareFile,
-		Sort:          "createdAt",
+		Scope:  datasetScope(t, 1, 2, 3),
+		Offset: 0,
+		Limit:  1,
+		Search: "测试",
+		Type:   model.DataTypeShareFile,
+		Sort:   "createdAt",
 	})
 	if err != nil {
 		t.Fatalf("list first page: %v", err)
 	}
 	secondPage, secondTotal, err := List(t.Context(), &ListOptions{
-		AccessibleIDs: []uint{1, 2, 3},
-		Offset:        1,
-		Limit:         1,
-		Search:        "测试",
-		Type:          model.DataTypeShareFile,
-		Sort:          "createdAt",
+		Scope:  datasetScope(t, 1, 2, 3),
+		Offset: 1,
+		Limit:  1,
+		Search: "测试",
+		Type:   model.DataTypeShareFile,
+		Sort:   "createdAt",
 	})
 	if err != nil {
 		t.Fatalf("list second page: %v", err)
@@ -166,13 +172,13 @@ func TestListStableSortAndOwnerFilter(t *testing.T) {
 	}
 
 	items, total, err := List(t.Context(), &ListOptions{
-		AccessibleIDs: []uint{1, 2, 3},
-		Offset:        0,
-		Limit:         10,
-		Owner:         "others",
-		Type:          model.DataTypeShareFile,
-		UserID:        1,
-		Sort:          "-createdAt",
+		Scope:  datasetScope(t, 1, 2, 3),
+		Offset: 0,
+		Limit:  10,
+		Owner:  "others",
+		Type:   model.DataTypeShareFile,
+		UserID: 1,
+		Sort:   "-createdAt",
 	})
 	if err != nil {
 		t.Fatalf("list owner-filtered page: %v", err)
@@ -182,11 +188,11 @@ func TestListStableSortAndOwnerFilter(t *testing.T) {
 	}
 
 	allItems, _, err := List(t.Context(), &ListOptions{
-		AccessibleIDs: []uint{1, 2},
-		Offset:        0,
-		Limit:         1,
-		Type:          model.DataTypeShareFile,
-		Sort:          "-createdAt",
+		Scope:  datasetScope(t, 1, 2),
+		Offset: 0,
+		Limit:  1,
+		Type:   model.DataTypeShareFile,
+		Sort:   "-createdAt",
 	})
 	if err != nil {
 		t.Fatalf("list stable page: %v", err)
@@ -196,7 +202,7 @@ func TestListStableSortAndOwnerFilter(t *testing.T) {
 	}
 }
 
-func TestListReturnsEmptyForNoAccessibleIDs(t *testing.T) {
+func TestListReturnsEmptyWithoutScope(t *testing.T) {
 	items, total, err := List(t.Context(), &ListOptions{Offset: 0, Limit: 10})
 	if err != nil {
 		t.Fatalf("list empty accessible set: %v", err)
@@ -221,11 +227,11 @@ func TestListReturnsEmptyPageWhenOffsetIsOutOfRange(t *testing.T) {
 	}
 
 	items, total, err := List(t.Context(), &ListOptions{
-		AccessibleIDs: []uint{1, 2},
-		Offset:        10,
-		Limit:         10,
-		Type:          model.DataTypeShareFile,
-		Sort:          "-createdAt",
+		Scope:  datasetScope(t, 1, 2),
+		Offset: 10,
+		Limit:  10,
+		Type:   model.DataTypeShareFile,
+		Sort:   "-createdAt",
 	})
 	if err != nil {
 		t.Fatalf("list out-of-range page: %v", err)

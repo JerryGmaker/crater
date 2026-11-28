@@ -22,7 +22,7 @@ import (
 
 const (
 	// v8 adds the atomic approval and lock operation for job orders.
-	// v9 consolidates optionally paginated database lists with legacy complete reads.
+	// v9 consolidates optionally paginated database lists with legacy complete reads and adds the optional node CPU model.
 	APIVersion = 9
 	// Job order approval requires the v8 approve-and-lock endpoint, and the
 	// unified list pagination contract requires v9.

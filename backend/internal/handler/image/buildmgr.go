@@ -4,9 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"gorm.io/gen/field"
-
 	"github.com/gin-gonic/gin"
+	"gorm.io/gen/field"
 	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
@@ -374,6 +373,9 @@ func (mgr *ImagePackMgr) getPodName(c *gin.Context, kanikoID uint) (name, ns, no
 }
 
 func (mgr *ImagePackMgr) getBuildPodName(c *gin.Context, imagePackName string) (name, ns, nodeName string) {
+	if imagePackName == "" {
+		return "", UserNameSpace, ""
+	}
 	var pod *corev1.Pod
 	pod, err := mgr.imagepackClient.GetImagePackPod(c, imagePackName, UserNameSpace)
 	if err != nil || pod == nil {
